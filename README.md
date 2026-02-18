@@ -71,7 +71,6 @@ See `.env.example` for all configuration options.
 
 ## Documentation
 
-- [Feature Specification](docs/CMCRank-Feature-Spec.md)
 - [API Documentation](docs/API.md) *(coming soon)*
 - [Contributing Guide](CONTRIBUTING.md) *(coming soon)*
 

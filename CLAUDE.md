@@ -121,4 +121,4 @@ CMCRank.ai is a web application focused on **relative performance analysis** of 
 
 - API keys stored at: `~/.config/cmcrank/`
 - Initial admins: `alex.shevchenko@defuse.org`, `alfred.ivory@defuse.org`
-- Feature spec: See `docs/CMCRank-Feature-Spec.md`
+- Feature spec: Kept outside repo to avoid context bloat. Ask Alfred or check GitHub issues for feature details.
