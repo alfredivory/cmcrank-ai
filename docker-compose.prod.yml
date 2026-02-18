@@ -41,3 +41,4 @@ services:
 
 volumes:
   postgres_data_prod:
+    name: cmcrank_postgres_data_prod

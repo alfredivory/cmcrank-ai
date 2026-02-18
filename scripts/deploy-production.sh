@@ -19,7 +19,7 @@ APP_CONTAINER="cmcrank-app-prod"
 DB_CONTAINER="cmcrank-db-prod"
 BACKUP_DIR="$HOME/.config/cmcrank/backups/production"
 
-export COMPOSE_PROJECT_NAME=cmcrank
+export COMPOSE_PROJECT_NAME=cmcrank-production
 
 log() {
   echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] [PRODUCTION] $*"
