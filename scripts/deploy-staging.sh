@@ -19,6 +19,8 @@ APP_CONTAINER="cmcrank-app-staging"
 DB_CONTAINER="cmcrank-db-staging"
 BACKUP_DIR="$HOME/.config/cmcrank/backups/staging"
 
+export COMPOSE_PROJECT_NAME=cmcrank
+
 log() {
   echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] [STAGING] $*"
 }
