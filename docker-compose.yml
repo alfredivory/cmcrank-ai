@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: cmcrank-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cmcrank
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-cmcrank_dev_password}
+      POSTGRES_DB: cmcrank_dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cmcrank -d cmcrank_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cmcrank-app
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://cmcrank:${DB_PASSWORD:-cmcrank_dev_password}@db:5432/cmcrank_dev
+    env_file:
+      - .env.local
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+    command: npm run dev
+
+volumes:
+  postgres_data:

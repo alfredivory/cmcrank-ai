@@ -1,0 +1,373 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [pgvector(map: "vector"), uuidOssp(map: "uuid-ossp")]
+}
+
+// ============================================================================
+// Authentication (NextAuth.js)
+// ============================================================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id                  String    @id @default(cuid())
+  name                String?
+  email               String?   @unique
+  emailVerified       DateTime?
+  image               String?
+  role                UserRole  @default(USER)
+  isAllowlisted       Boolean   @default(false)
+  researchCreditsUsed Int       @default(0)
+  creditsResetAt      DateTime  @default(now())
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  accounts       Account[]
+  sessions       Session[]
+  researches     Research[]
+  events         Event[]
+  contextNotes   ContextNote[]
+  chatMessages   ChatMessage[]
+  accessRequests AccessRequest[]
+  watchlists     Watchlist[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+// ============================================================================
+// Access Control
+// ============================================================================
+
+model AllowlistEntry {
+  id        String   @id @default(cuid())
+  pattern   String   @unique // email or regex pattern like *@defuse.org
+  isRegex   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  createdBy String?
+}
+
+model AccessRequest {
+  id        String              @id @default(cuid())
+  userId    String
+  email     String
+  status    AccessRequestStatus @default(PENDING)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum AccessRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
+// ============================================================================
+// Token & Market Data
+// ============================================================================
+
+model Token {
+  id               String   @id @default(cuid())
+  cmcId            Int      @unique
+  name             String
+  symbol           String
+  slug             String   @unique
+  categories       Json?    // Array of category tags
+  chain            String?
+  launchDate       DateTime?
+  logoUrl          String?
+  isTracked        Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  snapshots    DailySnapshot[]
+  researches   Research[]
+  events       Event[]
+  contextNotes ContextNote[]
+  watchlists   WatchlistToken[]
+
+  @@index([symbol])
+  @@index([isTracked])
+}
+
+model DailySnapshot {
+  id                String   @id @default(cuid())
+  tokenId           String
+  date              DateTime @db.Date
+  rank              Int
+  marketCap         Decimal  @db.Decimal(30, 2)
+  circulatingSupply Decimal  @db.Decimal(30, 8)
+  priceUsd          Decimal  @db.Decimal(30, 12)
+  volume24h         Decimal  @db.Decimal(30, 2)
+  createdAt         DateTime @default(now())
+
+  token Token @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+
+  @@unique([tokenId, date])
+  @@index([date, rank])
+  @@index([tokenId, date])
+}
+
+// ============================================================================
+// Backfill Management
+// ============================================================================
+
+model BackfillJob {
+  id              String          @id @default(cuid())
+  month           Int
+  year            Int
+  tokenScope      Int             @default(100) // How many tokens to backfill
+  status          BackfillStatus  @default(QUEUED)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  tokensProcessed Int             @default(0)
+  errors          Json?           // Array of error messages
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@unique([year, month, tokenScope])
+  @@index([status])
+}
+
+enum BackfillStatus {
+  QUEUED
+  RUNNING
+  COMPLETE
+  FAILED
+  PAUSED
+}
+
+model SystemConfig {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================================
+// AI Research
+// ============================================================================
+
+model Research {
+  id               String         @id @default(cuid())
+  tokenId          String
+  dateRangeStart   DateTime       @db.Date
+  dateRangeEnd     DateTime       @db.Date
+  triggeredByUserId String?
+  userContext      String?        @db.Text // User-provided guidance
+  status           ResearchStatus @default(PENDING)
+  content          Json?          // Structured research content
+  renderedMarkdown String?        @db.Text
+  importanceScore  Int            @default(50) // 0-100
+  version          Int            @default(1)
+  parentResearchId String?        // For re-researches
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  token          Token         @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  triggeredBy    User?         @relation(fields: [triggeredByUserId], references: [id], onDelete: SetNull)
+  parentResearch Research?     @relation("ResearchVersions", fields: [parentResearchId], references: [id])
+  childResearches Research[]   @relation("ResearchVersions")
+  events         Event[]
+  chatMessages   ChatMessage[]
+
+  @@index([tokenId, dateRangeStart, dateRangeEnd])
+  @@index([status])
+  @@index([importanceScore])
+}
+
+enum ResearchStatus {
+  PENDING
+  RUNNING
+  COMPLETE
+  FAILED
+}
+
+// ============================================================================
+// Events & Timeline
+// ============================================================================
+
+model Event {
+  id              String      @id @default(cuid())
+  tokenId         String
+  eventDate       DateTime    @db.Date
+  eventType       EventType
+  title           String      @db.VarChar(120)
+  description     String?     @db.Text
+  sourceUrl       String?
+  source          EventSource
+  researchId      String?
+  importanceScore Int         @default(50) // 0-100
+  sentimentScore  Int?        // Reserved for Phase 4: -100 to 100
+  createdByUserId String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  token     Token     @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  research  Research? @relation(fields: [researchId], references: [id], onDelete: SetNull)
+  createdBy User?     @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([tokenId, eventDate])
+  @@index([importanceScore])
+  @@index([eventType])
+}
+
+enum EventType {
+  RELEASE
+  PARTNERSHIP
+  LISTING
+  DELISTING
+  TOKENOMICS
+  GOVERNANCE
+  TECHNICAL
+  MARKET
+  REGULATORY
+  COMMUNITY
+  OTHER
+}
+
+enum EventSource {
+  AI_RESEARCH
+  USER_CONTRIBUTED
+  AUTOMATED_BACKFILL
+}
+
+// ============================================================================
+// User Contributions & Chat
+// ============================================================================
+
+model ContextNote {
+  id        String   @id @default(cuid())
+  tokenId   String
+  userId    String
+  content   String   @db.Text
+  sourceUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  token Token @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenId])
+}
+
+model ChatMessage {
+  id         String   @id @default(cuid())
+  researchId String
+  userId     String?
+  role       ChatRole
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
+
+  research Research @relation(fields: [researchId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([researchId])
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+// ============================================================================
+// Watchlists & Alerts (Phase 2)
+// ============================================================================
+
+model Watchlist {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String   @default("My Watchlist")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokens WatchlistToken[]
+
+  @@index([userId])
+}
+
+model WatchlistToken {
+  id          String   @id @default(cuid())
+  watchlistId String
+  tokenId     String
+  addedAt     DateTime @default(now())
+
+  watchlist Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+  token     Token     @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+
+  @@unique([watchlistId, tokenId])
+}
+
+// ============================================================================
+// Logging
+// ============================================================================
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  correlationId String?
+  service       String   // api, worker, cron
+  action        String
+  userId        String?
+  tokenId       String?
+  level         LogLevel @default(INFO)
+  message       String?
+  metadata      Json?
+  durationMs    Int?
+  error         String?  @db.Text
+  createdAt     DateTime @default(now())
+
+  @@index([correlationId])
+  @@index([createdAt])
+  @@index([userId])
+  @@index([action])
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+}
