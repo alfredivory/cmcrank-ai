@@ -31,7 +31,7 @@ export default function Home() {
             </div>
             <div className="flex justify-between">
               <span>Database</span>
-              <span className="text-yellow-400">Pending Setup</span>
+              <span className="text-green-400">Connected</span>
             </div>
             <div className="flex justify-between">
               <span>CMC API</span>
