@@ -86,7 +86,7 @@ DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_N
 
 # --- 7. Restart app container ---
 log "Starting app container..."
-docker compose -f "$COMPOSE_FILE" up -d app
+docker compose -f "$COMPOSE_FILE" up -d --force-recreate app
 
 # --- 8. Health check the app ---
 log "Waiting for app to be ready..."
