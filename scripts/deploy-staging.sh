@@ -59,7 +59,10 @@ else
   log "DB container not running, skipping backup."
 fi
 
-# --- 4. Build Docker images ---
+# --- 4. Ensure volume exists ---
+docker volume create cmcrank_postgres_data_staging 2>/dev/null || true
+
+# --- 5. Build Docker images ---
 log "Building Docker images..."
 docker compose -f "$COMPOSE_FILE" build --no-cache app
 
@@ -85,8 +88,10 @@ DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_N
   npx prisma migrate deploy
 
 # --- 7. Restart app container ---
+log "Removing old app container if present..."
+docker rm -f "$APP_CONTAINER" 2>/dev/null || true
 log "Starting app container..."
-docker compose -f "$COMPOSE_FILE" up -d --force-recreate app
+docker compose -f "$COMPOSE_FILE" up -d app
 
 # --- 8. Health check the app ---
 log "Waiting for app to be ready..."
