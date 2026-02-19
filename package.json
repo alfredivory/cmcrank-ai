@@ -15,7 +15,8 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "db:seed": "tsx src/lib/db/seed.ts"
+    "db:seed": "tsx src/lib/db/seed.ts",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
