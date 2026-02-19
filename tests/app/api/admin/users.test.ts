@@ -59,7 +59,7 @@ describe('GET /api/admin/users', () => {
 
   it('returns users list', async () => {
     mockFindMany.mockResolvedValue([
-      { id: 'u1', name: 'User', email: 'user@test.com', image: null, role: 'USER', isAllowlisted: false, createdAt: new Date() },
+      { id: 'u1', name: 'User', email: 'user@test.com', image: null, role: 'USER', isAllowlisted: false, dailyCreditLimit: null, createdAt: new Date() },
     ] as never);
 
     const req = new Request('http://localhost:3000/api/admin/users');
@@ -95,7 +95,7 @@ describe('PATCH /api/admin/users', () => {
   });
 
   it('updates user role', async () => {
-    mockUpdate.mockResolvedValue({ id: 'u2', role: 'ADMIN', email: 'user@test.com' } as never);
+    mockUpdate.mockResolvedValue({ id: 'u2', role: 'ADMIN', email: 'user@test.com', dailyCreditLimit: null } as never);
 
     const req = new Request('http://localhost:3000/api/admin/users', {
       method: 'PATCH',
@@ -134,6 +134,50 @@ describe('PATCH /api/admin/users', () => {
     const req = new Request('http://localhost:3000/api/admin/users', {
       method: 'PATCH',
       body: JSON.stringify({ userId: 'u2', role: 'SUPERADMIN' }),
+    });
+    const res = await PATCH(req);
+    expect(res.status).toBe(400);
+  });
+
+  it('updates dailyCreditLimit', async () => {
+    mockUpdate.mockResolvedValue({ id: 'u2', role: 'USER', email: 'user@test.com', dailyCreditLimit: 20 } as never);
+
+    const req = new Request('http://localhost:3000/api/admin/users', {
+      method: 'PATCH',
+      body: JSON.stringify({ userId: 'u2', dailyCreditLimit: 20 }),
+    });
+    const res = await PATCH(req);
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.data.dailyCreditLimit).toBe(20);
+  });
+
+  it('resets dailyCreditLimit to default with null', async () => {
+    mockUpdate.mockResolvedValue({ id: 'u2', role: 'USER', email: 'user@test.com', dailyCreditLimit: null } as never);
+
+    const req = new Request('http://localhost:3000/api/admin/users', {
+      method: 'PATCH',
+      body: JSON.stringify({ userId: 'u2', dailyCreditLimit: null }),
+    });
+    const res = await PATCH(req);
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.data.dailyCreditLimit).toBeNull();
+  });
+
+  it('rejects negative dailyCreditLimit', async () => {
+    const req = new Request('http://localhost:3000/api/admin/users', {
+      method: 'PATCH',
+      body: JSON.stringify({ userId: 'u2', dailyCreditLimit: -5 }),
+    });
+    const res = await PATCH(req);
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects when neither role nor dailyCreditLimit provided', async () => {
+    const req = new Request('http://localhost:3000/api/admin/users', {
+      method: 'PATCH',
+      body: JSON.stringify({ userId: 'u2' }),
     });
     const res = await PATCH(req);
     expect(res.status).toBe(400);

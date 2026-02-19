@@ -10,6 +10,7 @@ interface UserRecord {
   image: string | null;
   role: 'USER' | 'ADMIN';
   isAllowlisted: boolean;
+  dailyCreditLimit: number | null;
   createdAt: string;
 }
 
@@ -18,6 +19,8 @@ export default function AdminUsersTab() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [editingCredits, setEditingCredits] = useState<string | null>(null);
+  const [creditInput, setCreditInput] = useState('');
 
   const loadUsers = useCallback(async () => {
     try {
@@ -64,6 +67,37 @@ export default function AdminUsersTab() {
     }
   }
 
+  async function saveCreditLimit(userId: string) {
+    const value = creditInput.trim() === '' ? null : parseInt(creditInput, 10);
+    if (value !== null && (isNaN(value) || value < 0)) {
+      setError('Credit limit must be a non-negative number or empty for default');
+      return;
+    }
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, dailyCreditLimit: value }),
+      });
+      const body = await res.json();
+      if (res.ok) {
+        setUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, dailyCreditLimit: value } : u))
+        );
+        setEditingCredits(null);
+      } else {
+        setError(body.error || 'Failed to update credit limit');
+      }
+    } catch {
+      setError('Failed to update credit limit');
+    }
+  }
+
+  function startEditingCredits(user: UserRecord) {
+    setEditingCredits(user.id);
+    setCreditInput(user.dailyCreditLimit !== null ? String(user.dailyCreditLimit) : '');
+  }
+
   return (
     <div>
       <div className="mb-4">
@@ -95,6 +129,7 @@ export default function AdminUsersTab() {
                 <th className="text-left py-2 pr-4">Email</th>
                 <th className="text-left py-2 pr-4">Role</th>
                 <th className="text-left py-2 pr-4">Allowlisted</th>
+                <th className="text-left py-2 pr-4">Credits/Day</th>
                 <th className="text-left py-2 pr-4">Joined</th>
                 <th className="text-left py-2">Actions</th>
               </tr>
@@ -104,7 +139,7 @@ export default function AdminUsersTab() {
                 <tr key={user.id} className="border-b border-gray-700/50">
                   <td className="py-3 pr-4 flex items-center gap-2">
                     {user.image && (
-                      <Image src={user.image} alt="" width={24} height={24} className="rounded-full" />
+                      <Image src={user.image} alt="" width={24} height={24} className="rounded-full" unoptimized />
                     )}
                     <span>{user.name || '—'}</span>
                   </td>
@@ -122,6 +157,47 @@ export default function AdminUsersTab() {
                     <span className={user.isAllowlisted ? 'text-green-400' : 'text-gray-500'}>
                       {user.isAllowlisted ? 'Yes' : 'No'}
                     </span>
+                  </td>
+                  <td className="py-3 pr-4">
+                    {user.role === 'ADMIN' ? (
+                      <span className="text-purple-400 text-xs">Unlimited</span>
+                    ) : editingCredits === user.id ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min="0"
+                          value={creditInput}
+                          onChange={(e) => setCreditInput(e.target.value)}
+                          placeholder="default"
+                          className="w-20 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveCreditLimit(user.id);
+                            if (e.key === 'Escape') setEditingCredits(null);
+                          }}
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => saveCreditLimit(user.id)}
+                          className="px-2 py-1 bg-blue-600/30 hover:bg-blue-600/50 border border-blue-600/50 rounded text-xs text-blue-400"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditingCredits(null)}
+                          className="px-2 py-1 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded text-xs text-gray-400"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => startEditingCredits(user)}
+                        className="text-gray-400 hover:text-white text-xs transition-colors"
+                        title="Click to edit"
+                      >
+                        {user.dailyCreditLimit !== null ? user.dailyCreditLimit : 'Default'}
+                      </button>
+                    )}
                   </td>
                   <td className="py-3 pr-4 text-gray-400">
                     {new Date(user.createdAt).toLocaleDateString()}

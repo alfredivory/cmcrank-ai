@@ -49,6 +49,7 @@ model User {
   isAllowlisted       Boolean   @default(false)
   researchCreditsUsed Int       @default(0)
   creditsResetAt      DateTime  @default(now())
+  dailyCreditLimit    Int?      // Per-user override; null = use global default
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 

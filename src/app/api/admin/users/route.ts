@@ -34,6 +34,7 @@ export async function GET(request: Request) {
         image: true,
         role: true,
         isAllowlisted: true,
+        dailyCreditLimit: true,
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -61,39 +62,62 @@ export async function PATCH(request: Request) {
 
   try {
     const body = await request.json();
-    const { userId, role } = body as { userId: string; role: string };
+    const { userId, role, dailyCreditLimit } = body as {
+      userId: string;
+      role?: string;
+      dailyCreditLimit?: number | null;
+    };
 
-    if (!userId || !role) {
-      return NextResponse.json({ error: 'userId and role are required' }, { status: 400 });
+    if (!userId) {
+      return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     }
 
-    if (role !== 'USER' && role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Role must be USER or ADMIN' }, { status: 400 });
+    if (role === undefined && dailyCreditLimit === undefined) {
+      return NextResponse.json({ error: 'role or dailyCreditLimit is required' }, { status: 400 });
     }
 
-    // Prevent self-demotion
-    if (authResult.id === userId && role === 'USER') {
-      return NextResponse.json({ error: 'Cannot demote yourself' }, { status: 400 });
-    }
+    const updateData: Record<string, unknown> = {};
 
-    // Prevent removing last admin
-    if (role === 'USER') {
-      const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } });
-      const targetUser = await prisma.user.findUnique({ where: { id: userId } });
-      if (targetUser?.role === 'ADMIN' && adminCount <= 1) {
-        return NextResponse.json({ error: 'Cannot remove the last admin' }, { status: 400 });
+    // Handle role update
+    if (role !== undefined) {
+      if (role !== 'USER' && role !== 'ADMIN') {
+        return NextResponse.json({ error: 'Role must be USER or ADMIN' }, { status: 400 });
       }
+
+      // Prevent self-demotion
+      if (authResult.id === userId && role === 'USER') {
+        return NextResponse.json({ error: 'Cannot demote yourself' }, { status: 400 });
+      }
+
+      // Prevent removing last admin
+      if (role === 'USER') {
+        const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } });
+        const targetUser = await prisma.user.findUnique({ where: { id: userId } });
+        if (targetUser?.role === 'ADMIN' && adminCount <= 1) {
+          return NextResponse.json({ error: 'Cannot remove the last admin' }, { status: 400 });
+        }
+      }
+
+      updateData.role = role;
+    }
+
+    // Handle dailyCreditLimit update
+    if (dailyCreditLimit !== undefined) {
+      if (dailyCreditLimit !== null && (typeof dailyCreditLimit !== 'number' || dailyCreditLimit < 0 || !Number.isInteger(dailyCreditLimit))) {
+        return NextResponse.json({ error: 'dailyCreditLimit must be a non-negative integer or null' }, { status: 400 });
+      }
+      updateData.dailyCreditLimit = dailyCreditLimit;
     }
 
     const updated = await prisma.user.update({
       where: { id: userId },
-      data: { role: role as 'USER' | 'ADMIN' },
-      select: { id: true, role: true, email: true },
+      data: updateData,
+      select: { id: true, role: true, email: true, dailyCreditLimit: true },
     });
 
-    logger.info('admin.users.roleChanged', {
+    logger.info('admin.users.updated', {
       userId: updated.id,
-      metadata: { newRole: role, changedBy: authResult.id },
+      metadata: { ...updateData, changedBy: authResult.id },
     });
 
     return NextResponse.json({ data: updated });

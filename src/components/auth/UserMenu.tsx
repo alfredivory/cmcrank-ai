@@ -35,7 +35,7 @@ export default function UserMenu() {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 rounded-full hover:ring-2 hover:ring-blue-500 transition-all"
+        className="flex items-center gap-2 px-2 py-1 rounded-full hover:ring-2 hover:ring-blue-500 transition-all"
         aria-label="User menu"
       >
         {user.image ? (
@@ -44,13 +44,17 @@ export default function UserMenu() {
             alt={user.name || 'User'}
             width={32}
             height={32}
-            className="rounded-full"
+            className="rounded-full shrink-0"
+            unoptimized
           />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-medium">
+          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-medium shrink-0">
             {(user.name || user.email || '?')[0].toUpperCase()}
           </div>
         )}
+        <span className="text-sm text-gray-300 max-w-[150px] truncate hidden sm:inline">
+          {user.name || user.email}
+        </span>
       </button>
 
       {open && (
@@ -68,9 +72,11 @@ export default function UserMenu() {
               }`}>
                 {user.role}
               </span>
-              {user.isAllowlisted && (
+              {(user.isAllowlisted || user.role === 'ADMIN') && (
                 <span className="text-xs text-green-400">
-                  {user.creditsRemaining} credits
+                  {user.creditsRemaining === -1
+                    ? 'Unlimited'
+                    : `${user.creditsRemaining} credits`}
                 </span>
               )}
             </div>

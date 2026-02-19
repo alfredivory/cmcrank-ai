@@ -19,6 +19,7 @@ declare module 'next-auth' {
     isAllowlisted: boolean;
     researchCreditsUsed: number;
     creditsResetAt: Date;
+    dailyCreditLimit: number | null;
   }
 }
 
@@ -28,5 +29,6 @@ declare module 'next-auth/adapters' {
     isAllowlisted: boolean;
     researchCreditsUsed: number;
     creditsResetAt: Date;
+    dailyCreditLimit: number | null;
   }
 }

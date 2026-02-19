@@ -10,7 +10,7 @@ vi.mock('@/lib/db', () => ({
 }));
 
 import { prisma } from '@/lib/db';
-import { getDailyLimit, getCreditsRemaining, consumeCredit } from '@/lib/auth/credits';
+import { getDailyLimit, getEffectiveLimit, getCreditsRemaining, consumeCredit, UNLIMITED_CREDITS } from '@/lib/auth/credits';
 
 const mockFindUser = vi.mocked(prisma.user.findUniqueOrThrow);
 const mockUpdateUser = vi.mocked(prisma.user.update);
@@ -18,8 +18,10 @@ const mockUpdateUser = vi.mocked(prisma.user.update);
 function makeUser(overrides: Record<string, unknown> = {}) {
   return {
     id: 'user-1',
+    role: 'USER',
     researchCreditsUsed: 0,
     creditsResetAt: new Date(),
+    dailyCreditLimit: null,
     ...overrides,
   };
 }
@@ -44,6 +46,28 @@ describe('getDailyLimit', () => {
   it('returns default for non-numeric env var', () => {
     process.env.RESEARCH_CREDITS_PER_DAY = 'abc';
     expect(getDailyLimit()).toBe(5);
+  });
+});
+
+describe('getEffectiveLimit', () => {
+  beforeEach(() => {
+    process.env.RESEARCH_CREDITS_PER_DAY = '5';
+  });
+
+  it('returns unlimited for admins', () => {
+    expect(getEffectiveLimit({ role: 'ADMIN', dailyCreditLimit: null })).toBe(UNLIMITED_CREDITS);
+  });
+
+  it('returns unlimited for admins even with per-user limit set', () => {
+    expect(getEffectiveLimit({ role: 'ADMIN', dailyCreditLimit: 10 })).toBe(UNLIMITED_CREDITS);
+  });
+
+  it('returns per-user limit when set', () => {
+    expect(getEffectiveLimit({ role: 'USER', dailyCreditLimit: 20 })).toBe(20);
+  });
+
+  it('returns global default when no per-user limit', () => {
+    expect(getEffectiveLimit({ role: 'USER', dailyCreditLimit: null })).toBe(5);
   });
 });
 
@@ -91,6 +115,20 @@ describe('getCreditsRemaining', () => {
     const result = await getCreditsRemaining('user-1');
     expect(result).toBe(0);
   });
+
+  it('returns unlimited for admin users', async () => {
+    mockFindUser.mockResolvedValue(makeUser({ role: 'ADMIN' }) as never);
+
+    const result = await getCreditsRemaining('user-1');
+    expect(result).toBe(UNLIMITED_CREDITS);
+  });
+
+  it('uses per-user limit when set', async () => {
+    mockFindUser.mockResolvedValue(makeUser({ dailyCreditLimit: 10, researchCreditsUsed: 3 }) as never);
+
+    const result = await getCreditsRemaining('user-1');
+    expect(result).toBe(7);
+  });
 });
 
 describe('consumeCredit', () => {
@@ -134,5 +172,13 @@ describe('consumeCredit', () => {
     const result = await consumeCredit('user-1');
     expect(result.success).toBe(true);
     expect(result.remaining).toBe(4);
+  });
+
+  it('always succeeds for admin users', async () => {
+    mockFindUser.mockResolvedValue(makeUser({ role: 'ADMIN', researchCreditsUsed: 999 }) as never);
+
+    const result = await consumeCredit('user-1');
+    expect(result.success).toBe(true);
+    expect(result.remaining).toBe(UNLIMITED_CREDITS);
   });
 });

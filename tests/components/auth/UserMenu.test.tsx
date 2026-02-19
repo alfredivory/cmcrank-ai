@@ -66,7 +66,8 @@ describe('UserMenu', () => {
     });
     render(<UserMenu />);
     fireEvent.click(screen.getByLabelText('User menu'));
-    expect(screen.getByText('Test User')).toBeInTheDocument();
+    // Name appears in both the button and the dropdown
+    expect(screen.getAllByText('Test User').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('test@test.com')).toBeInTheDocument();
     expect(screen.getByText('USER')).toBeInTheDocument();
   });

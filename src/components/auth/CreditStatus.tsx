@@ -9,11 +9,19 @@ interface CreditStatusProps {
 export default function CreditStatus({ className }: CreditStatusProps) {
   const { data: session } = useSession();
 
-  if (!session?.user?.isAllowlisted) {
+  if (!session?.user?.isAllowlisted && session?.user?.role !== 'ADMIN') {
     return null;
   }
 
   const { creditsRemaining } = session.user;
+
+  if (creditsRemaining === -1) {
+    return (
+      <span className={className ?? 'text-sm text-gray-400'}>
+        Unlimited credits
+      </span>
+    );
+  }
 
   return (
     <span className={className ?? 'text-sm text-gray-400'}>

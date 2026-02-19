@@ -117,7 +117,7 @@ export default function AdminAccessRequestsTab() {
                 <tr key={req.id} className="border-b border-gray-700/50">
                   <td className="py-3 pr-4 flex items-center gap-2">
                     {req.user.image && (
-                      <Image src={req.user.image} alt="" width={24} height={24} className="rounded-full" />
+                      <Image src={req.user.image} alt="" width={24} height={24} className="rounded-full" unoptimized />
                     )}
                     <span>{req.user.name || '—'}</span>
                   </td>
