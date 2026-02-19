@@ -28,6 +28,7 @@
     "prisma": "^7.4.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "recharts": "^3.7.0",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

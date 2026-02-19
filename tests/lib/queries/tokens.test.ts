@@ -25,7 +25,7 @@ vi.mock('@/lib/db', () => ({
   },
 }));
 
-import { getTokenList, getTokenBySlug, getCategories } from '@/lib/queries/tokens';
+import { getTokenList, getTokenBySlug, getCategories, getLatestSnapshotDate } from '@/lib/queries/tokens';
 
 function createDecimal(value: number) {
   return {
@@ -365,5 +365,27 @@ describe('getCategories', () => {
     const result = await getCategories();
 
     expect(result).toEqual([]);
+  });
+});
+
+describe('getLatestSnapshotDate', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns the latest snapshot date', async () => {
+    mockSnapshotFindFirst.mockResolvedValue({ date: latestDate });
+
+    const result = await getLatestSnapshotDate();
+
+    expect(result).toEqual(latestDate);
+  });
+
+  it('returns null when no snapshots exist', async () => {
+    mockSnapshotFindFirst.mockResolvedValue(null);
+
+    const result = await getLatestSnapshotDate();
+
+    expect(result).toBeNull();
   });
 });
