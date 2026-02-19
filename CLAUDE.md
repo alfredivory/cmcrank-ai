@@ -12,7 +12,7 @@ CMCRank.ai is a web application focused on **relative performance analysis** of 
 
 - TypeScript strict mode, no `any` types
 - All API routes return typed responses
-- Database queries via Prisma ORM (or Drizzle — TBD)
+- Database queries via Prisma ORM
 - All components are functional React with hooks
 - CSS via Tailwind CSS
 - No inline styles
@@ -28,6 +28,34 @@ CMCRank.ai is a web application focused on **relative performance analysis** of 
 - **Minimum coverage target: 90% for business logic**
 - Run tests after every feature implementation
 - CI must pass before merging
+
+## Deployment
+
+### Branches & Environments
+
+- `develop` → auto-deploys to `staging.cmcrank.ai` (:3001)
+- `main` → deploys to `cmcrank.ai` (:3000) after manual approval (alfredivory or alexauroradev)
+- Feature branches → branch from `develop`, PR back to `develop`
+
+### Pipeline
+
+1. Push triggers CI on GitHub-hosted runners (lint, typecheck, test, build)
+2. After CI passes, deploy job runs on self-hosted runner (`/Users/alfredivory/actions-runner/`)
+3. Deploy script: copies env file → builds Docker image → runs Prisma migrations → restarts app → health check
+
+### Infrastructure
+
+- Self-hosted GitHub Actions runner (macOS ARM64, launchd auto-start)
+- Cloudflare Zero Trust tunnel routes both domains
+- Docker Compose per environment: `docker-compose.staging.yml`, `docker-compose.prod.yml`
+- Separate compose project names (`cmcrank-staging`, `cmcrank-production`) to isolate containers
+- Environment files on host only: `~/.config/cmcrank/.env.staging`, `~/.config/cmcrank/.env.production`
+- DB backups stored at `~/.config/cmcrank/backups/`
+
+### Deploy Scripts
+
+- `scripts/deploy-staging.sh` — called by GitHub Actions, can also run manually
+- `scripts/deploy-production.sh` — same structure, different compose file and env
 
 ## File Structure
 
@@ -61,10 +89,13 @@ CMCRank.ai is a web application focused on **relative performance analysis** of 
   /types                  # TypeScript type definitions
   /workers                # Background jobs (cron, backfill)
 /tests                    # Test files mirroring src structure
-/docker                   # Docker Compose config
-  /docker-compose.yml
-  /Dockerfile
+/scripts                  # Deploy scripts
 /prisma                   # Prisma schema and migrations
+/docker-compose.yml           # Dev environment
+/docker-compose.staging.yml   # Staging environment
+/docker-compose.prod.yml      # Production environment
+/Dockerfile                   # Multi-stage build (standalone Next.js)
+/.github/workflows/           # CI and deploy workflows
 ```
 
 ## Conventions
