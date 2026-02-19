@@ -36,6 +36,42 @@ export interface TokenDetailResponse {
   data: TokenListItem;
 }
 
+// ============================================================================
+// Token Detail Extended (includes 90d rank change)
+// ============================================================================
+
+export interface TokenDetailExtended extends TokenListItem {
+  rankChange90d: number | null;
+}
+
+// ============================================================================
+// Snapshot History API Types
+// ============================================================================
+
+export type SnapshotTimeRange = '7d' | '30d' | '90d' | '1y' | 'all';
+
+export interface SnapshotDataPoint {
+  date: string; // YYYY-MM-DD
+  rank: number;
+  marketCap: number;
+  price: number;
+  volume24h: number;
+  circulatingSupply: number;
+}
+
+export interface SnapshotHistoryResponse {
+  data: {
+    tokenId: string;
+    slug: string;
+    range: SnapshotTimeRange | 'custom';
+    startDate: string;
+    endDate: string;
+    snapshots: SnapshotDataPoint[];
+  };
+}
+
+export type ChartOverlay = 'rank' | 'marketCap' | 'price' | 'circulatingSupply' | 'volume24h';
+
 export interface CategoryItem {
   name: string;
   count: number;
