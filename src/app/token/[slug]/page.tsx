@@ -5,7 +5,8 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import TokenHeader from '@/components/tokens/TokenHeader';
 import RankChart from '@/components/charts/RankChart';
-import { getTokenDetailBySlug, getSnapshotHistory } from '@/lib/queries/tokens';
+import SiteFooter from '@/components/layout/SiteFooter';
+import { getTokenDetailBySlug, getSnapshotHistory, getLatestSnapshotDate } from '@/lib/queries/tokens';
 
 interface TokenPageProps {
   params: Promise<{ slug: string }>;
@@ -33,7 +34,10 @@ export default async function TokenPage({ params }: TokenPageProps) {
     notFound();
   }
 
-  const initialSnapshots = await getSnapshotHistory(token.id, '30d');
+  const [initialSnapshots, latestSnapshotDate] = await Promise.all([
+    getSnapshotHistory(token.id, '30d'),
+    getLatestSnapshotDate(),
+  ]);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
@@ -58,6 +62,8 @@ export default async function TokenPage({ params }: TokenPageProps) {
             initialRange="30d"
           />
         </div>
+
+        <SiteFooter latestSnapshotDate={latestSnapshotDate} />
       </div>
     </main>
   );

@@ -1,12 +1,14 @@
 import TokenTable from '@/components/tokens/TokenTable';
-import { getTokenList, getCategories } from '@/lib/queries/tokens';
+import SiteFooter from '@/components/layout/SiteFooter';
+import { getTokenList, getCategories, getLatestSnapshotDate } from '@/lib/queries/tokens';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const [tokenResult, categories] = await Promise.all([
+  const [tokenResult, categories, latestSnapshotDate] = await Promise.all([
     getTokenList({ limit: 100, offset: 0, sort: 'rank', order: 'asc' }),
     getCategories(),
+    getLatestSnapshotDate(),
   ]);
 
   return (
@@ -34,19 +36,7 @@ export default async function Home() {
           categories={categories}
         />
 
-        {/* Footer */}
-        <footer className="mt-12 text-center text-gray-500 text-sm">
-          <p>
-            <a
-              href="https://github.com/alfredivory/cmcrank-ai"
-              className="text-blue-400 hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              GitHub
-            </a>
-          </p>
-        </footer>
+        <SiteFooter latestSnapshotDate={latestSnapshotDate} />
       </div>
     </main>
   );

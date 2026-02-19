@@ -335,6 +335,18 @@ export async function getSnapshotHistory(
 }
 
 /**
+ * Get the most recent snapshot date across all tokens.
+ * Returns null if no snapshots exist.
+ */
+export async function getLatestSnapshotDate(): Promise<Date | null> {
+  const result = await prisma.dailySnapshot.findFirst({
+    orderBy: { date: 'desc' },
+    select: { date: true },
+  });
+  return result?.date ?? null;
+}
+
+/**
  * Get unique categories from all tokens with counts.
  */
 export async function getCategories(): Promise<CategoryItem[]> {

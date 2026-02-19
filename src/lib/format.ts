@@ -45,6 +45,19 @@ export function formatLargeNumber(value: number): string {
 }
 
 /**
+ * Format a Date as a human-readable string.
+ * e.g., "Feb 18, 2026"
+ */
+export function formatDate(date: Date): string {
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+/**
  * Format a rank change delta with sign.
  * Positive = rank improved (moved up, e.g., from 10 to 5 = delta -5 in rank, but +5 in improvement).
  * We treat negative delta (rank number decreased) as improvement.

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatPrice, formatLargeNumber, formatRankChange } from '@/lib/format';
+import { formatPrice, formatLargeNumber, formatRankChange, formatDate } from '@/lib/format';
 
 describe('formatPrice', () => {
   it('formats prices >= $1 with two decimal places', () => {
@@ -68,5 +68,16 @@ describe('formatRankChange', () => {
 
   it('formats null (no data available)', () => {
     expect(formatRankChange(null)).toBe('—');
+  });
+});
+
+describe('formatDate', () => {
+  it('formats a date as "Mon DD, YYYY"', () => {
+    expect(formatDate(new Date('2026-02-18'))).toBe('Feb 18, 2026');
+  });
+
+  it('formats different months correctly', () => {
+    expect(formatDate(new Date('2025-12-25'))).toBe('Dec 25, 2025');
+    expect(formatDate(new Date('2024-01-01'))).toBe('Jan 1, 2024');
   });
 });
