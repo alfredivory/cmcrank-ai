@@ -1,36 +1,110 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CMCRank.ai
+
+Track cryptocurrency token rankings over time using CoinMarketCap data. Visualize rank, price, market cap, volume, and supply trends with interactive charts.
+
+**Live:** [cmcrank.ai](https://cmcrank.ai) | **Staging:** [staging.cmcrank.ai](https://staging.cmcrank.ai)
+
+## Stack
+
+- **Framework:** Next.js 16 (App Router, React 19)
+- **Language:** TypeScript (strict mode)
+- **Database:** PostgreSQL 16 + pgvector, Prisma ORM v7
+- **Styling:** Tailwind CSS 4
+- **Charts:** Recharts
+- **Auth:** NextAuth.js (Google + GitHub OAuth)
+- **Deployment:** Docker Compose, Cloudflare Zero Trust tunnel
+- **Testing:** Vitest + React Testing Library
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 20+
+- PostgreSQL 16 (or Docker)
+- npm
+
+### Setup
 
 ```bash
+# Install dependencies
+npm install
+
+# Generate Prisma client
+npm run db:generate
+
+# Run database migrations
+npm run db:migrate
+
+# Seed initial data
+npm run db:seed
+
+# Start dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Copy `.env.example` to `.env.local` and configure:
 
-## Learn More
+- `DATABASE_URL` — PostgreSQL connection string
+- `NEXTAUTH_SECRET` — NextAuth session secret
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — Google OAuth
+- `GITHUB_ID` / `GITHUB_SECRET` — GitHub OAuth
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Production build |
+| `npm run check` | Lint + typecheck + test + build (CI equivalent) |
+| `npm test` | Run tests |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run test:coverage` | Run tests with coverage |
+| `npm run db:generate` | Generate Prisma client |
+| `npm run db:migrate` | Run database migrations |
+| `npm run db:studio` | Open Prisma Studio |
+| `npm run db:seed` | Seed database with initial data |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deployment
 
-## Deploy on Vercel
+Two environments with separate databases and Docker Compose configs:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **`develop` branch** auto-deploys to staging (`staging.cmcrank.ai`)
+- **`main` branch** deploys to production (`cmcrank.ai`) after approval
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+CI pipeline: lint → typecheck → test → build → deploy.
+
+See `scripts/deploy-staging.sh` and `scripts/deploy-production.sh`.
+
+## Project Structure
+
+```
+src/
+  app/                    # Next.js pages and API routes
+    page.tsx              # Homepage — token list
+    token/[slug]/         # Token detail — rank chart
+    api/tokens/           # Token + snapshot API endpoints
+    admin/                # Admin panel
+  components/
+    charts/               # RankChart, TimeRangeSelector, etc.
+    tokens/               # TokenHeader, CategoryTags, etc.
+    layout/               # SiteFooter, etc.
+  lib/
+    db/                   # Prisma client, seed script
+    queries/              # Database query functions
+    format.ts             # Number/date formatting
+    chart-utils.ts        # Chart tick computation
+    logger/               # Structured JSON logging
+  types/                  # TypeScript type definitions
+  workers/                # Background jobs (ingestion, backfill)
+tests/                    # Tests mirroring src/ structure
+prisma/                   # Schema and migrations
+scripts/                  # Deploy scripts
+```
+
+## License
+
+Private — all rights reserved.
