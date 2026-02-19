@@ -15,12 +15,14 @@ import OverlaySelector from './OverlaySelector';
 import ChartTooltip from './ChartTooltip';
 import type { SnapshotDataPoint, SnapshotTimeRange, ChartOverlay } from '@/types/api';
 import { formatLargeNumber } from '@/lib/format';
+import { computeUniformTicks } from '@/lib/chart-utils';
 
 interface RankChartProps {
   tokenId: string;
   slug: string;
   initialSnapshots: SnapshotDataPoint[];
-  initialRange: SnapshotTimeRange;
+  initialRange: SnapshotTimeRange | 'custom';
+  initialOverlay?: ChartOverlay;
 }
 
 const OVERLAY_COLORS: Record<ChartOverlay, string> = {
@@ -31,23 +33,23 @@ const OVERLAY_COLORS: Record<ChartOverlay, string> = {
   circulatingSupply: '#ec4899',
 };
 
-const MAX_TICKS = 10;
-
-function computeUniformTicks(dates: string[]): string[] {
-  if (dates.length <= MAX_TICKS) return dates;
-  const ticks: string[] = [dates[0]];
-  const step = (dates.length - 1) / (MAX_TICKS - 1);
-  for (let i = 1; i < MAX_TICKS - 1; i++) {
-    ticks.push(dates[Math.round(i * step)]);
-  }
-  ticks.push(dates[dates.length - 1]);
-  return ticks;
-}
-
 function formatYAxis(value: number, overlay: ChartOverlay): string {
   if (overlay === 'rank') return `#${value}`;
   if (overlay === 'circulatingSupply') return value.toLocaleString('en-US', { notation: 'compact' });
   return formatLargeNumber(value);
+}
+
+function updateUrl(params: Record<string, string>) {
+  const url = new URL(window.location.href);
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
+  // Remove custom date params when switching to a preset range
+  if (params.range && params.range !== 'custom') {
+    url.searchParams.delete('start');
+    url.searchParams.delete('end');
+  }
+  window.history.replaceState({}, '', url.toString());
 }
 
 export default function RankChart({
@@ -55,10 +57,11 @@ export default function RankChart({
   slug,
   initialSnapshots,
   initialRange,
+  initialOverlay = 'rank',
 }: RankChartProps) {
   const [snapshots, setSnapshots] = useState<SnapshotDataPoint[]>(initialSnapshots);
   const [range, setRange] = useState<SnapshotTimeRange | 'custom'>(initialRange);
-  const [activeOverlay, setActiveOverlay] = useState<ChartOverlay>('rank');
+  const [activeOverlay, setActiveOverlay] = useState<ChartOverlay>(initialOverlay);
   const [loading, setLoading] = useState(false);
 
   const fetchSnapshots = useCallback(async (url: string, newRange: SnapshotTimeRange | 'custom') => {
@@ -76,15 +79,18 @@ export default function RankChart({
 
   const handleRangeChange = useCallback((newRange: SnapshotTimeRange) => {
     fetchSnapshots(`/api/tokens/${slug}/snapshots?range=${newRange}`, newRange);
-  }, [slug, fetchSnapshots]);
+    updateUrl({ range: newRange, overlay: activeOverlay });
+  }, [slug, fetchSnapshots, activeOverlay]);
 
   const handleCustomRange = useCallback((start: string, end: string) => {
     fetchSnapshots(`/api/tokens/${slug}/snapshots?start=${start}&end=${end}`, 'custom');
-  }, [slug, fetchSnapshots]);
+    updateUrl({ range: 'custom', start, end, overlay: activeOverlay });
+  }, [slug, fetchSnapshots, activeOverlay]);
 
   const handleOverlayChange = useCallback((overlay: ChartOverlay) => {
     setActiveOverlay(overlay);
-  }, []);
+    updateUrl({ range: range === 'custom' ? 'custom' : range, overlay });
+  }, [range]);
 
   const xTicks = useMemo(
     () => computeUniformTicks(snapshots.map((s) => s.date)),
@@ -122,6 +128,7 @@ export default function RankChart({
                 stroke="#9ca3af"
                 tick={{ fontSize: 12 }}
                 ticks={xTicks}
+                interval={0}
                 tickFormatter={(value: string) => {
                   const parts = value.split('-');
                   return `${parts[1]}/${parts[2]}`;

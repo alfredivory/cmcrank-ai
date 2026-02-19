@@ -23,6 +23,7 @@ describe('RankChart', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     global.fetch = vi.fn();
+    vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
   });
 
   it('renders time range and overlay selectors', () => {
@@ -124,6 +125,96 @@ describe('RankChart', () => {
 
     // Click Price
     fireEvent.click(screen.getByText('Price'));
+
+    expect(screen.getByText('Price').className).toContain('bg-blue-500');
+    expect(screen.getByText('Rank').className).not.toContain('bg-blue-500');
+  });
+
+  it('updates URL when range changes', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { snapshots: mockSnapshots } }),
+    });
+
+    render(
+      <RankChart
+        tokenId="token-1"
+        slug="bitcoin"
+        initialSnapshots={mockSnapshots}
+        initialRange="30d"
+      />
+    );
+
+    fireEvent.click(screen.getByText('7D'));
+
+    await waitFor(() => {
+      expect(window.history.replaceState).toHaveBeenCalled();
+      const lastCall = vi.mocked(window.history.replaceState).mock.lastCall;
+      const url = new URL(lastCall![2] as string);
+      expect(url.searchParams.get('range')).toBe('7d');
+    });
+  });
+
+  it('updates URL when overlay changes', () => {
+    render(
+      <RankChart
+        tokenId="token-1"
+        slug="bitcoin"
+        initialSnapshots={mockSnapshots}
+        initialRange="30d"
+      />
+    );
+
+    fireEvent.click(screen.getByText('Price'));
+
+    expect(window.history.replaceState).toHaveBeenCalled();
+    const lastCall = vi.mocked(window.history.replaceState).mock.lastCall;
+    const url = new URL(lastCall![2] as string);
+    expect(url.searchParams.get('overlay')).toBe('price');
+  });
+
+  it('removes custom date params when switching to preset range', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { snapshots: mockSnapshots } }),
+    });
+
+    // Start with a location that has custom params
+    Object.defineProperty(window, 'location', {
+      value: new URL('http://localhost/token/bitcoin?range=custom&start=2025-01-01&end=2025-06-30&overlay=rank'),
+      writable: true,
+    });
+
+    render(
+      <RankChart
+        tokenId="token-1"
+        slug="bitcoin"
+        initialSnapshots={mockSnapshots}
+        initialRange="custom"
+      />
+    );
+
+    fireEvent.click(screen.getByText('30D'));
+
+    await waitFor(() => {
+      const lastCall = vi.mocked(window.history.replaceState).mock.lastCall;
+      const url = new URL(lastCall![2] as string);
+      expect(url.searchParams.get('range')).toBe('30d');
+      expect(url.searchParams.has('start')).toBe(false);
+      expect(url.searchParams.has('end')).toBe(false);
+    });
+  });
+
+  it('uses initialOverlay when provided', () => {
+    render(
+      <RankChart
+        tokenId="token-1"
+        slug="bitcoin"
+        initialSnapshots={mockSnapshots}
+        initialRange="30d"
+        initialOverlay="price"
+      />
+    );
 
     expect(screen.getByText('Price').className).toContain('bg-blue-500');
     expect(screen.getByText('Rank').className).not.toContain('bg-blue-500');

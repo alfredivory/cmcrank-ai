@@ -7,9 +7,16 @@ import TokenHeader from '@/components/tokens/TokenHeader';
 import RankChart from '@/components/charts/RankChart';
 import SiteFooter from '@/components/layout/SiteFooter';
 import { getTokenDetailBySlug, getSnapshotHistory, getLatestSnapshotDate } from '@/lib/queries/tokens';
+import type { SnapshotTimeRange, ChartOverlay } from '@/types/api';
+
+const VALID_RANGES: SnapshotTimeRange[] = ['7d', '30d', '90d', '1y', 'all'];
+const VALID_OVERLAYS: ChartOverlay[] = ['rank', 'marketCap', 'price', 'circulatingSupply', 'volume24h'];
+const DEFAULT_RANGE: SnapshotTimeRange = '30d';
+const DEFAULT_OVERLAY: ChartOverlay = 'rank';
 
 interface TokenPageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 export async function generateMetadata({ params }: TokenPageProps): Promise<Metadata> {
@@ -26,16 +33,36 @@ export async function generateMetadata({ params }: TokenPageProps): Promise<Meta
   };
 }
 
-export default async function TokenPage({ params }: TokenPageProps) {
+export default async function TokenPage({ params, searchParams }: TokenPageProps) {
   const { slug } = await params;
+  const resolvedSearchParams = await searchParams;
   const token = await getTokenDetailBySlug(slug);
 
   if (!token) {
     notFound();
   }
 
+  const rangeParam = typeof resolvedSearchParams.range === 'string' ? resolvedSearchParams.range : undefined;
+  const overlayParam = typeof resolvedSearchParams.overlay === 'string' ? resolvedSearchParams.overlay : undefined;
+  const startParam = typeof resolvedSearchParams.start === 'string' ? resolvedSearchParams.start : undefined;
+  const endParam = typeof resolvedSearchParams.end === 'string' ? resolvedSearchParams.end : undefined;
+
+  const isCustomRange = rangeParam === 'custom' && startParam && endParam;
+  const initialRange: SnapshotTimeRange = isCustomRange
+    ? 'all' // getSnapshotHistory uses 'all' with custom dates
+    : VALID_RANGES.includes(rangeParam as SnapshotTimeRange)
+      ? (rangeParam as SnapshotTimeRange)
+      : DEFAULT_RANGE;
+  const initialOverlay = VALID_OVERLAYS.includes(overlayParam as ChartOverlay)
+    ? (overlayParam as ChartOverlay)
+    : DEFAULT_OVERLAY;
+
+  const snapshotPromise = isCustomRange
+    ? getSnapshotHistory(token.id, 'all', new Date(startParam), new Date(endParam))
+    : getSnapshotHistory(token.id, initialRange);
+
   const [initialSnapshots, latestSnapshotDate] = await Promise.all([
-    getSnapshotHistory(token.id, '30d'),
+    snapshotPromise,
     getLatestSnapshotDate(),
   ]);
 
@@ -59,7 +86,8 @@ export default async function TokenPage({ params }: TokenPageProps) {
             tokenId={token.id}
             slug={token.slug}
             initialSnapshots={initialSnapshots}
-            initialRange="30d"
+            initialRange={isCustomRange ? 'custom' : initialRange}
+            initialOverlay={initialOverlay}
           />
         </div>
 
