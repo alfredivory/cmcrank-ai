@@ -115,7 +115,7 @@ export async function runDailyIngestion(
 
   logger.info('ingestion.complete', {
     durationMs,
-    metadata: result,
+    metadata: { ...result },
   });
 
   return result;

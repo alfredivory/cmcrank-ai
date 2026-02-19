@@ -9,7 +9,7 @@ function createMockLogger() {
     error: vi.fn(),
     child: vi.fn().mockReturnThis(),
     getCorrelationId: () => 'test-id',
-  } as ReturnType<typeof import('@/lib/logger').createLogger>;
+  } as unknown as ReturnType<typeof import('@/lib/logger').createLogger>;
 }
 
 function createMockPrisma(existingKeys: string[] = []) {
