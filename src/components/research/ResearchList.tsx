@@ -52,9 +52,12 @@ export default function ResearchList({ items }: ResearchListProps) {
               <div className="flex items-center gap-3">
                 <div>
                   <p className="text-sm text-gray-200">
-                    {item.dateRangeStart} to {item.dateRangeEnd}
+                    {item.title ?? `${item.dateRangeStart} to ${item.dateRangeEnd}`}
                   </p>
-                  <p className={`text-xs ${status.color}`}>{status.label}</p>
+                  <p className="text-xs text-gray-500">
+                    {item.dateRangeStart} to {item.dateRangeEnd}
+                    {' '}<span className={status.color}>· {status.label}</span>
+                  </p>
                 </div>
               </div>
               {item.status === 'COMPLETE' && (

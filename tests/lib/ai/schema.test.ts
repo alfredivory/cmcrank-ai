@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { validateResearchResponse } from '@/lib/ai/schema';
 
 const validResponse = {
+  title: 'The ETF Rally',
   report: {
     executiveSummary: 'Bitcoin experienced significant growth.',
     findings: [
@@ -27,6 +28,7 @@ const validResponse = {
 describe('validateResearchResponse', () => {
   it('accepts a valid response', () => {
     const result = validateResearchResponse(validResponse);
+    expect(result.title).toBe('The ETF Rally');
     expect(result.report.executiveSummary).toBe('Bitcoin experienced significant growth.');
     expect(result.report.findings).toHaveLength(1);
     expect(result.events).toHaveLength(1);
@@ -118,5 +120,30 @@ describe('validateResearchResponse', () => {
     delete (input as Record<string, unknown>).overallImportanceScore;
     const result = validateResearchResponse(input);
     expect(result.overallImportanceScore).toBe(50);
+  });
+
+  it('extracts valid title from response', () => {
+    const result = validateResearchResponse(validResponse);
+    expect(result.title).toBe('The ETF Rally');
+  });
+
+  it('falls back to first finding title when title is missing', () => {
+    const input = { ...validResponse };
+    delete (input as Record<string, unknown>).title;
+    const result = validateResearchResponse(input);
+    expect(result.title).toBe('ETF Approval');
+  });
+
+  it('falls back to first finding title when title is empty string', () => {
+    const input = { ...validResponse, title: '   ' };
+    const result = validateResearchResponse(input);
+    expect(result.title).toBe('ETF Approval');
+  });
+
+  it('truncates title to 120 chars', () => {
+    const longTitle = 'A'.repeat(200);
+    const input = { ...validResponse, title: longTitle };
+    const result = validateResearchResponse(input);
+    expect(result.title).toHaveLength(120);
   });
 });

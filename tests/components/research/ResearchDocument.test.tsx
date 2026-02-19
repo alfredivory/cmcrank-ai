@@ -5,6 +5,7 @@ import type { ResearchDetail } from '@/types/api';
 
 const sampleResearch: ResearchDetail = {
   id: 'res1',
+  title: 'The ETF Rally',
   tokenId: 'token1',
   dateRangeStart: '2024-01-01',
   dateRangeEnd: '2024-01-31',

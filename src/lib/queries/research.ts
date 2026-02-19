@@ -3,6 +3,7 @@ import type { ResearchStatus } from '@prisma/client';
 
 export interface ResearchListItem {
   id: string;
+  title: string | null;
   dateRangeStart: Date;
   dateRangeEnd: Date;
   status: ResearchStatus;
@@ -13,6 +14,7 @@ export interface ResearchListItem {
 
 export interface ResearchDetail {
   id: string;
+  title: string | null;
   tokenId: string;
   dateRangeStart: Date;
   dateRangeEnd: Date;
@@ -135,6 +137,7 @@ export async function getResearchById(
 
   return {
     id: research.id,
+    title: research.title,
     tokenId: research.tokenId,
     dateRangeStart: research.dateRangeStart,
     dateRangeEnd: research.dateRangeEnd,
@@ -172,6 +175,7 @@ export async function getResearchForToken(
       where: baseWhere,
       select: {
         id: true,
+        title: true,
         dateRangeStart: true,
         dateRangeEnd: true,
         status: true,

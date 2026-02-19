@@ -31,6 +31,7 @@ export async function GET(
     return NextResponse.json({
       data: {
         id: research.id,
+        title: research.title,
         tokenId: research.tokenId,
         dateRangeStart: research.dateRangeStart.toISOString().split('T')[0],
         dateRangeEnd: research.dateRangeEnd.toISOString().split('T')[0],

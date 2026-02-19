@@ -2,6 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import RankChart from '@/components/charts/RankChart';
 import type { SnapshotDataPoint } from '@/types/api';
+import type { ResearchPeriod } from '@/components/charts/ResearchBandTooltip';
+
+const mockPush = vi.fn();
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
 
 // Mock recharts — ResponsiveContainer needs explicit dimensions in jsdom
 vi.mock('recharts', async (importOriginal) => {
@@ -218,5 +224,69 @@ describe('RankChart', () => {
 
     expect(screen.getByText('Price').className).toContain('bg-blue-500');
     expect(screen.getByText('Rank').className).not.toContain('bg-blue-500');
+  });
+
+  it('renders without crashing when researchPeriods is provided', () => {
+    const periods: ResearchPeriod[] = [
+      {
+        id: 'res-1',
+        title: 'The ETF Rally',
+        dateRangeStart: '2026-01-19',
+        dateRangeEnd: '2026-02-18',
+        importanceScore: 85,
+      },
+    ];
+
+    render(
+      <RankChart
+        tokenId="token-1"
+        slug="bitcoin"
+        initialSnapshots={mockSnapshots}
+        initialRange="30d"
+        researchPeriods={periods}
+      />
+    );
+
+    // Chart should still render normally
+    expect(screen.getByText('7D')).toBeInTheDocument();
+    expect(screen.queryByText('No data available for this range')).not.toBeInTheDocument();
+  });
+
+  it('renders without research bands when no researchPeriods', () => {
+    render(
+      <RankChart
+        tokenId="token-1"
+        slug="bitcoin"
+        initialSnapshots={mockSnapshots}
+        initialRange="30d"
+      />
+    );
+
+    // Chart renders fine without research periods
+    expect(screen.getByText('Rank')).toBeInTheDocument();
+  });
+
+  it('renders without research bands when snapshots are empty', () => {
+    const periods: ResearchPeriod[] = [
+      {
+        id: 'res-1',
+        title: 'The ETF Rally',
+        dateRangeStart: '2026-01-19',
+        dateRangeEnd: '2026-02-18',
+        importanceScore: 85,
+      },
+    ];
+
+    render(
+      <RankChart
+        tokenId="token-1"
+        slug="bitcoin"
+        initialSnapshots={[]}
+        initialRange="30d"
+        researchPeriods={periods}
+      />
+    );
+
+    expect(screen.getByText('No data available for this range')).toBeInTheDocument();
   });
 });

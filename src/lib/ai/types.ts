@@ -31,6 +31,7 @@ export interface ResearchEventExtracted {
 }
 
 export interface ResearchAIResponse {
+  title: string; // Short memorable title (3-6 words)
   report: ResearchReport;
   events: ResearchEventExtracted[];
   overallImportanceScore: number; // 0-100

@@ -25,8 +25,10 @@ export async function generateMetadata({ params }: ResearchPageProps): Promise<M
   const startStr = research.dateRangeStart.toISOString().split('T')[0];
   const endStr = research.dateRangeEnd.toISOString().split('T')[0];
 
+  const titleText = research.title ?? `${startStr} to ${endStr}`;
+
   return {
-    title: `Research: ${research.token.name} (${startStr} to ${endStr}) — CMCRank.ai`,
+    title: `${titleText} — ${research.token.name} Research — CMCRank.ai`,
     description: `AI-powered research investigation for ${research.token.name} covering ${startStr} to ${endStr}.`,
   };
 }
@@ -45,6 +47,7 @@ export default async function ResearchPage({ params }: ResearchPageProps) {
   // Serialize for client components
   const serializedResearch: ResearchDetail = {
     id: research.id,
+    title: research.title,
     tokenId: research.tokenId,
     dateRangeStart: research.dateRangeStart.toISOString().split('T')[0],
     dateRangeEnd: research.dateRangeEnd.toISOString().split('T')[0],

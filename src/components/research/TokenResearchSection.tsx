@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import RankChart from '@/components/charts/RankChart';
 import ResearchTrigger from './ResearchTrigger';
 import ResearchList from './ResearchList';
@@ -33,6 +33,19 @@ export default function TokenResearchSection({
     setSelectedEnd(end);
   };
 
+  const researchPeriods = useMemo(
+    () => researchItems
+      .filter(item => item.status === 'COMPLETE')
+      .map(item => ({
+        id: item.id,
+        title: item.title,
+        dateRangeStart: item.dateRangeStart,
+        dateRangeEnd: item.dateRangeEnd,
+        importanceScore: item.importanceScore,
+      })),
+    [researchItems]
+  );
+
   return (
     <>
       {/* Rank Chart */}
@@ -44,6 +57,7 @@ export default function TokenResearchSection({
           initialRange={initialRange}
           initialOverlay={initialOverlay}
           onRangeSelect={handleRangeSelect}
+          researchPeriods={researchPeriods}
         />
       </div>
 

@@ -205,6 +205,7 @@ model Research {
   dateRangeEnd     DateTime       @db.Date
   triggeredByUserId String?
   userContext      String?        @db.Text // User-provided guidance
+  title            String?        @db.VarChar(120)
   status           ResearchStatus @default(PENDING)
   content          Json?          // Structured research content
   renderedMarkdown String?        @db.Text

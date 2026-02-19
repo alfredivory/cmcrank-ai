@@ -107,6 +107,7 @@ export async function executeResearch(researchId: string): Promise<void> {
         where: { id: researchId },
         data: {
           status: 'COMPLETE',
+          title: aiResponse.title,
           content: JSON.parse(JSON.stringify(aiResponse.report)),
           renderedMarkdown,
           importanceScore: aiResponse.overallImportanceScore,

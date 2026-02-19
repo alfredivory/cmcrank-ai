@@ -194,6 +194,7 @@ describe('getResearchForToken', () => {
     mockFindMany.mockResolvedValue([
       {
         id: 'res1',
+        title: 'Test Title',
         dateRangeStart: new Date('2024-01-01'),
         dateRangeEnd: new Date('2024-01-31'),
         status: 'COMPLETE',
@@ -207,6 +208,7 @@ describe('getResearchForToken', () => {
     const result = await getResearchForToken('token1', { limit: 10, offset: 0 });
     expect(result.items).toHaveLength(1);
     expect(result.total).toBe(1);
+    expect(result.items[0].title).toBe('Test Title');
   });
 
   it('respects limit and offset', async () => {
@@ -216,6 +218,18 @@ describe('getResearchForToken', () => {
     await getResearchForToken('token1', { limit: 5, offset: 10 });
     expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({ take: 5, skip: 10 })
+    );
+  });
+
+  it('selects title field', async () => {
+    mockFindMany.mockResolvedValue([]);
+    mockCount.mockResolvedValue(0);
+
+    await getResearchForToken('token1', { limit: 10, offset: 0 });
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ title: true }),
+      })
     );
   });
 

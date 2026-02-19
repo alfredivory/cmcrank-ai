@@ -97,7 +97,18 @@ export function validateResearchResponse(data: unknown): ResearchAIResponse {
   const rawEvents = Array.isArray(obj.events) ? obj.events : [];
   const events = rawEvents.map(validateEvent).filter((e): e is ResearchEventExtracted => e !== null);
 
+  // Validate title — fallback to first finding title if missing
+  let title: string;
+  if (typeof obj.title === 'string' && obj.title.trim().length > 0) {
+    title = obj.title.trim().slice(0, 120);
+  } else if (findings.length > 0) {
+    title = findings[0].title.slice(0, 120);
+  } else {
+    title = 'Research Report';
+  }
+
   return {
+    title,
     report: {
       executiveSummary: report.executiveSummary,
       findings,

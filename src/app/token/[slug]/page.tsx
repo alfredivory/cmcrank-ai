@@ -71,6 +71,7 @@ export default async function TokenPage({ params, searchParams }: TokenPageProps
 
   const researchItems = researchResult.items.map((item) => ({
     id: item.id,
+    title: item.title,
     dateRangeStart: item.dateRangeStart.toISOString().split('T')[0],
     dateRangeEnd: item.dateRangeEnd.toISOString().split('T')[0],
     status: item.status,

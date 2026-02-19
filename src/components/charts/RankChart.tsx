@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   LineChart,
   Line,
@@ -14,6 +15,8 @@ import {
 import TimeRangeSelector from './TimeRangeSelector';
 import OverlaySelector from './OverlaySelector';
 import ChartTooltip from './ChartTooltip';
+import ResearchBandTooltip from './ResearchBandTooltip';
+import type { ResearchPeriod } from './ResearchBandTooltip';
 import type { SnapshotDataPoint, SnapshotTimeRange, ChartOverlay } from '@/types/api';
 import { formatLargeNumber } from '@/lib/format';
 import { computeUniformTicks } from '@/lib/chart-utils';
@@ -25,6 +28,7 @@ interface RankChartProps {
   initialRange: SnapshotTimeRange | 'custom';
   initialOverlay?: ChartOverlay;
   onRangeSelect?: (start: string, end: string) => void;
+  researchPeriods?: ResearchPeriod[];
 }
 
 const OVERLAY_COLORS: Record<ChartOverlay, string> = {
@@ -46,7 +50,6 @@ function updateUrl(params: Record<string, string>) {
   for (const [key, value] of Object.entries(params)) {
     url.searchParams.set(key, value);
   }
-  // Remove custom date params when switching to a preset range
   if (params.range && params.range !== 'custom') {
     url.searchParams.delete('start');
     url.searchParams.delete('end');
@@ -61,7 +64,9 @@ export default function RankChart({
   initialRange,
   initialOverlay = 'rank',
   onRangeSelect,
+  researchPeriods,
 }: RankChartProps) {
+  const router = useRouter();
   const [snapshots, setSnapshots] = useState<SnapshotDataPoint[]>(initialSnapshots);
   const [range, setRange] = useState<SnapshotTimeRange | 'custom'>(initialRange);
   const [activeOverlay, setActiveOverlay] = useState<ChartOverlay>(initialOverlay);
@@ -69,6 +74,23 @@ export default function RankChart({
   const [selectionStart, setSelectionStart] = useState<string | null>(null);
   const [selectionEnd, setSelectionEnd] = useState<string | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
+  const [hoveredResearch, setHoveredResearch] = useState<ResearchPeriod | null>(null);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+
+  const snapshotDates = useMemo(() => snapshots.map(s => s.date), [snapshots]);
+
+  const visibleResearchBands = useMemo(() => {
+    if (!researchPeriods || snapshotDates.length === 0) return [];
+    const first = snapshotDates[0];
+    const last = snapshotDates[snapshotDates.length - 1];
+    return researchPeriods
+      .filter(p => p.dateRangeStart <= last && p.dateRangeEnd >= first)
+      .map(p => ({
+        ...p,
+        x1: snapshotDates.find(d => d >= p.dateRangeStart) ?? first,
+        x2: [...snapshotDates].reverse().find(d => d <= p.dateRangeEnd) ?? last,
+      }));
+  }, [researchPeriods, snapshotDates]);
 
   const fetchSnapshots = useCallback(async (url: string, newRange: SnapshotTimeRange | 'custom') => {
     setLoading(true);
@@ -106,31 +128,54 @@ export default function RankChart({
     }
   }, []);
 
-  const handleMouseMove = useCallback((e: { activeLabel?: string | number }) => {
+  const handleMouseMove = useCallback((e: { activeLabel?: string | number; activeCoordinate?: { x: number; y: number } }) => {
     if (isSelecting && e?.activeLabel != null) {
       setSelectionEnd(String(e.activeLabel));
     }
-  }, [isSelecting]);
+    if (!isSelecting && e?.activeLabel != null && researchPeriods) {
+      const label = String(e.activeLabel);
+      const match = researchPeriods.find(p => label >= p.dateRangeStart && label <= p.dateRangeEnd);
+      setHoveredResearch(match ?? null);
+      if (match && e.activeCoordinate) {
+        setTooltipPos({ x: e.activeCoordinate.x, y: e.activeCoordinate.y - 10 });
+      }
+    } else if (!isSelecting) {
+      setHoveredResearch(null);
+    }
+  }, [isSelecting, researchPeriods]);
 
   const handleMouseUp = useCallback(() => {
-    if (isSelecting && selectionStart && selectionEnd) {
-      const [start, end] = selectionStart < selectionEnd
-        ? [selectionStart, selectionEnd]
-        : [selectionEnd, selectionStart];
-      if (start !== end) {
-        onRangeSelect?.(start, end);
+    if (isSelecting && selectionStart) {
+      if (selectionEnd) {
+        const [start, end] = selectionStart < selectionEnd
+          ? [selectionStart, selectionEnd]
+          : [selectionEnd, selectionStart];
+        if (start !== end) {
+          onRangeSelect?.(start, end);
+        }
+      } else if (researchPeriods) {
+        const match = researchPeriods.find(
+          p => selectionStart >= p.dateRangeStart && selectionStart <= p.dateRangeEnd
+        );
+        if (match) router.push(`/research/${match.id}`);
       }
     }
     setIsSelecting(false);
-  }, [isSelecting, selectionStart, selectionEnd, onRangeSelect]);
+  }, [isSelecting, selectionStart, selectionEnd, onRangeSelect, researchPeriods, router]);
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredResearch(null);
+  }, []);
 
   const xTicks = useMemo(
-    () => computeUniformTicks(snapshots.map((s) => s.date)),
-    [snapshots]
+    () => computeUniformTicks(snapshotDates),
+    [snapshotDates]
   );
 
   // Suppress unused variable warning — tokenId reserved for future event markers
   void tokenId;
+
+  const chartCursor = hoveredResearch ? 'pointer' : onRangeSelect ? 'crosshair' : undefined;
 
   return (
     <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-6">
@@ -146,7 +191,7 @@ export default function RankChart({
         />
       </div>
 
-      <div className={`transition-opacity duration-200 ${loading ? 'opacity-50' : 'opacity-100'}`}>
+      <div className={`relative transition-opacity duration-200 ${loading ? 'opacity-50' : 'opacity-100'}`}>
         {snapshots.length === 0 ? (
           <div className="flex items-center justify-center h-80 text-gray-500">
             No data available for this range
@@ -159,7 +204,8 @@ export default function RankChart({
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
-              style={{ cursor: onRangeSelect ? 'crosshair' : undefined }}
+              onMouseLeave={handleMouseLeave}
+              style={{ cursor: chartCursor }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
               <XAxis
@@ -181,6 +227,17 @@ export default function RankChart({
                 width={80}
               />
               <Tooltip content={<ChartTooltip />} />
+              {visibleResearchBands.map((band) => (
+                <ReferenceArea
+                  key={band.id}
+                  x1={band.x1}
+                  x2={band.x2}
+                  fill="#10b981"
+                  fillOpacity={0.08}
+                  stroke="#10b981"
+                  strokeOpacity={0.2}
+                />
+              ))}
               <Line
                 type="monotone"
                 dataKey={activeOverlay}
@@ -200,6 +257,9 @@ export default function RankChart({
               )}
             </LineChart>
           </ResponsiveContainer>
+        )}
+        {hoveredResearch && (
+          <ResearchBandTooltip research={hoveredResearch} x={tooltipPos.x} y={tooltipPos.y} />
         )}
       </div>
     </div>

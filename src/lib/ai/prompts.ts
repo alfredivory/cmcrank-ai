@@ -13,6 +13,7 @@ You MUST respond with a valid JSON object and nothing else. No markdown code fen
 The JSON object must follow this exact schema:
 
 {
+  "title": "A short, memorable title (3-6 words) capturing the key narrative. Examples: 'Privacy Narrative 2.0', 'The ETF Rally', 'Post-Merge Selloff'",
   "report": {
     "executiveSummary": "A 2-3 sentence summary of the key findings.",
     "findings": [

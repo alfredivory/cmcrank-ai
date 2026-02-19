@@ -58,6 +58,7 @@ vi.mock('@/lib/ai/client', () => ({
 import { executeResearch, renderResearchReport } from '@/lib/ai/execute';
 
 const sampleAIResponse: ResearchAIResponse = {
+  title: 'The ETF Rally',
   report: {
     executiveSummary: 'Bitcoin gained rank due to ETF approval.',
     findings: [
@@ -238,6 +239,19 @@ describe('executeResearch', () => {
   it('does not throw even on failure', async () => {
     mockResearchFindUniqueOrThrow.mockRejectedValue(new Error('test'));
     await expect(executeResearch('res1')).resolves.toBeUndefined();
+  });
+
+  it('stores title in research update', async () => {
+    await executeResearch('res1');
+
+    expect(mockResearchUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'COMPLETE',
+          title: 'The ETF Rally',
+        }),
+      })
+    );
   });
 
   it('stores rendered markdown in research', async () => {

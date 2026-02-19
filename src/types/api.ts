@@ -103,6 +103,7 @@ export interface TokenListParams {
 
 export interface ResearchListItem {
   id: string;
+  title: string | null;
   dateRangeStart: string;
   dateRangeEnd: string;
   status: string;
@@ -112,6 +113,7 @@ export interface ResearchListItem {
 
 export interface ResearchDetail {
   id: string;
+  title: string | null;
   tokenId: string;
   dateRangeStart: string;
   dateRangeEnd: string;
