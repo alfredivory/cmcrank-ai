@@ -35,48 +35,31 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user }) {
-      const email = user.email?.toLowerCase();
-      if (!email) {
-        logger.warn('auth.signIn.noEmail', { metadata: { userId: user.id } });
+      if (!user.email) {
+        logger.warn('auth.signIn.noEmail');
         return false;
       }
-
-      const initialAdmins = getInitialAdmins();
-      const isInitialAdmin = initialAdmins.includes(email);
-      const allowlisted = await isEmailAllowlisted(email);
-
-      // Auto-promote initial admins on sign-in
-      if (isInitialAdmin) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            role: 'ADMIN',
-            isAllowlisted: true,
-          },
-        });
-        logger.info('auth.signIn.autoAdmin', {
-          userId: user.id,
-          metadata: { email },
-        });
-      } else if (allowlisted) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { isAllowlisted: true },
-        });
-        logger.info('auth.signIn.allowlisted', {
-          userId: user.id,
-          metadata: { email },
-        });
-      } else {
-        logger.info('auth.signIn.standard', {
-          userId: user.id,
-          metadata: { email },
-        });
-      }
-
       return true;
     },
     async session({ session, user }) {
+      // user is the DB record (database strategy) — safe to update
+      const email = user.email?.toLowerCase();
+      if (email) {
+        const initialAdmins = getInitialAdmins();
+        if (initialAdmins.includes(email) && user.role !== 'ADMIN') {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { role: 'ADMIN', isAllowlisted: true },
+          });
+          user.role = 'ADMIN';
+          user.isAllowlisted = true;
+          logger.info('auth.session.autoAdmin', {
+            userId: user.id,
+            metadata: { email },
+          });
+        }
+      }
+
       const creditsRemaining = await getCreditsRemaining(user.id);
 
       session.user.id = user.id;
@@ -85,6 +68,42 @@ export const authOptions: NextAuthOptions = {
       session.user.creditsRemaining = creditsRemaining;
 
       return session;
+    },
+  },
+  events: {
+    async createUser({ user }) {
+      // Fires after PrismaAdapter has persisted the new user
+      const email = user.email?.toLowerCase();
+      if (!email) return;
+
+      const initialAdmins = getInitialAdmins();
+      const isInitialAdmin = initialAdmins.includes(email);
+      const allowlisted = await isEmailAllowlisted(email);
+
+      if (isInitialAdmin) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { role: 'ADMIN', isAllowlisted: true },
+        });
+        logger.info('auth.createUser.autoAdmin', {
+          userId: user.id,
+          metadata: { email },
+        });
+      } else if (allowlisted) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { isAllowlisted: true },
+        });
+        logger.info('auth.createUser.allowlisted', {
+          userId: user.id,
+          metadata: { email },
+        });
+      } else {
+        logger.info('auth.createUser.standard', {
+          userId: user.id,
+          metadata: { email },
+        });
+      }
     },
   },
 };
