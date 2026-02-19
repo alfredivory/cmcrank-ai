@@ -3,20 +3,15 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { createRequestLogger } from '@/lib/logger';
-
-function isAuthorized(request: Request): boolean {
-  const secret = request.headers.get('x-admin-secret');
-  const expected = process.env.ADMIN_API_SECRET;
-  if (!expected) return false;
-  return secret === expected;
-}
+import { requireAdminDual, isAuthError } from '@/lib/auth/helpers';
 
 export async function GET(request: Request) {
   const logger = createRequestLogger(request, 'api');
 
-  if (!isAuthorized(request)) {
+  const authResult = await requireAdminDual(request);
+  if (isAuthError(authResult)) {
     logger.warn('admin.config.list.unauthorized');
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return authResult;
   }
 
   try {
@@ -44,9 +39,10 @@ export async function GET(request: Request) {
 export async function PUT(request: Request) {
   const logger = createRequestLogger(request, 'api');
 
-  if (!isAuthorized(request)) {
+  const authResult = await requireAdminDual(request);
+  if (isAuthError(authResult)) {
     logger.warn('admin.config.update.unauthorized');
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return authResult;
   }
 
   try {

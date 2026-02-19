@@ -5,20 +5,15 @@ import { prisma } from '@/lib/db';
 import { getCMCClient } from '@/lib/cmc';
 import { createRequestLogger } from '@/lib/logger';
 import { startBackfill, pauseBackfill } from '@/workers/backfill';
-
-function isAuthorized(request: Request): boolean {
-  const secret = request.headers.get('x-admin-secret');
-  const expected = process.env.ADMIN_API_SECRET;
-  if (!expected) return false;
-  return secret === expected;
-}
+import { requireAdminDual, isAuthError } from '@/lib/auth/helpers';
 
 export async function POST(request: Request) {
   const logger = createRequestLogger(request, 'api');
 
-  if (!isAuthorized(request)) {
+  const authResult = await requireAdminDual(request);
+  if (isAuthError(authResult)) {
     logger.warn('admin.backfill.unauthorized');
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return authResult;
   }
 
   try {
@@ -75,9 +70,10 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   const logger = createRequestLogger(request, 'api');
 
-  if (!isAuthorized(request)) {
+  const authResult = await requireAdminDual(request);
+  if (isAuthError(authResult)) {
     logger.warn('admin.backfill.list.unauthorized');
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return authResult;
   }
 
   try {
@@ -102,9 +98,10 @@ export async function GET(request: Request) {
 export async function PATCH(request: Request) {
   const logger = createRequestLogger(request, 'api');
 
-  if (!isAuthorized(request)) {
+  const authResult = await requireAdminDual(request);
+  if (isAuthError(authResult)) {
     logger.warn('admin.backfill.pause.unauthorized');
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return authResult;
   }
 
   try {

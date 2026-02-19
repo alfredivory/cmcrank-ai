@@ -16,6 +16,16 @@ const nextConfig: NextConfig = {
         hostname: 's2.coinmarketcap.com',
         pathname: '/static/img/coins/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+        pathname: '/**',
+      },
     ],
   },
 

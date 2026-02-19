@@ -1,8 +1,45 @@
 # CMCRank.ai
 
-Track cryptocurrency token rankings over time using CoinMarketCap data. Visualize rank, price, market cap, volume, and supply trends with interactive charts.
+**Price tells you what happened to one token. Rank tells you how it performed against everyone else.**
 
-**Live:** [cmcrank.ai](https://cmcrank.ai) | **Staging:** [staging.cmcrank.ai](https://staging.cmcrank.ai)
+CMCRank.ai is a cryptocurrency analytics platform focused on **relative performance** — tracking how tokens move in the CoinMarketCap rankings over time. Instead of watching price charts in isolation, CMCRank reveals whether a project is gaining or losing ground against the broader market.
+
+**Live:** [cmcrank.ai](https://cmcrank.ai)
+
+## What It Does
+
+- **Rank tracking** — Daily snapshots of CoinMarketCap rankings for the top 1,000 tokens, with history going back to February 2024
+- **Interactive charts** — Visualize a token's rank trajectory over time with overlays for price, market cap, volume, and circulating supply
+- **Time range analysis** — Compare performance across 7d, 30d, 90d, 1y, or custom date ranges
+- **Category filtering** — Filter tokens by sector (L1, DeFi, AI, Gaming, etc.) to see intra-category performance
+- **Shareable views** — Every chart state is encoded in the URL, making any view bookmarkable and shareable
+
+## Roadmap
+
+### Now — Core Analytics (Phase 1)
+
+The foundation is live: daily data ingestion, token list with search/sort/filter, and detailed rank charts with metric overlays.
+
+Coming next in Phase 1:
+
+- **Token comparison** — Overlay 2–5 tokens on a single chart to compare rank trajectories side by side
+- **Category views** — Dedicated pages per category with intra-sector leaderboards and performance breakdowns
+- **AI research** — Select a time range on any chart and trigger an AI investigation into what drove the rank movement (news, releases, tokenomics events, market context). Results are stored as permanent, shareable research documents
+- **Event timeline** — Key events (partnerships, listings, protocol upgrades) displayed as markers on the rank chart, with importance-based filtering
+- **Research chat** — Conversational interface to ask questions about completed research, contribute context, and trigger re-investigations with new information
+
+### Next — Advanced Analytics (Phase 2)
+
+- **Rank volatility score** — How stable or erratic is a token's ranking? Normalized 0–100 metric
+- **Momentum indicators** — Trend-weighted rank direction over 7d/30d/90d, surfacing tokens with consistent trajectory changes
+- **Category leaderboards** — Fastest movers within each sector, with breakout detection for unusual movements
+- **Watchlists and alerts** — Personal token watchlists with configurable alerts on significant rank changes
+
+### Later — Intelligence Layer (Phase 3+)
+
+- **Correlation engine** — Find tokens with similar rank trajectories using vector similarity search (pgvector)
+- **Sentiment analysis** — Score events as bullish/bearish/neutral and correlate sentiment with actual rank outcomes
+- **Rank projections** — Probabilistic rank direction estimates based on accumulated event-rank correlation data
 
 ## Stack
 
@@ -12,7 +49,6 @@ Track cryptocurrency token rankings over time using CoinMarketCap data. Visualiz
 - **Styling:** Tailwind CSS 4
 - **Charts:** Recharts
 - **Auth:** NextAuth.js (Google + GitHub OAuth)
-- **Deployment:** Docker Compose, Cloudflare Zero Trust tunnel
 - **Testing:** Vitest + React Testing Library
 
 ## Getting Started
@@ -68,43 +104,6 @@ Copy `.env.example` to `.env.local` and configure:
 | `npm run db:studio` | Open Prisma Studio |
 | `npm run db:seed` | Seed database with initial data |
 
-## Deployment
-
-Two environments with separate databases and Docker Compose configs:
-
-- **`develop` branch** auto-deploys to staging (`staging.cmcrank.ai`)
-- **`main` branch** deploys to production (`cmcrank.ai`) after approval
-
-CI pipeline: lint → typecheck → test → build → deploy.
-
-See `scripts/deploy-staging.sh` and `scripts/deploy-production.sh`.
-
-## Project Structure
-
-```
-src/
-  app/                    # Next.js pages and API routes
-    page.tsx              # Homepage — token list
-    token/[slug]/         # Token detail — rank chart
-    api/tokens/           # Token + snapshot API endpoints
-    admin/                # Admin panel
-  components/
-    charts/               # RankChart, TimeRangeSelector, etc.
-    tokens/               # TokenHeader, CategoryTags, etc.
-    layout/               # SiteFooter, etc.
-  lib/
-    db/                   # Prisma client, seed script
-    queries/              # Database query functions
-    format.ts             # Number/date formatting
-    chart-utils.ts        # Chart tick computation
-    logger/               # Structured JSON logging
-  types/                  # TypeScript type definitions
-  workers/                # Background jobs (ingestion, backfill)
-tests/                    # Tests mirroring src/ structure
-prisma/                   # Schema and migrations
-scripts/                  # Deploy scripts
-```
-
 ## License
 
-Private — all rights reserved.
+[MIT](LICENSE)
