@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   LineChart,
   Line,
@@ -30,6 +30,19 @@ const OVERLAY_COLORS: Record<ChartOverlay, string> = {
   volume24h: '#8b5cf6',
   circulatingSupply: '#ec4899',
 };
+
+const MAX_TICKS = 10;
+
+function computeUniformTicks(dates: string[]): string[] {
+  if (dates.length <= MAX_TICKS) return dates;
+  const ticks: string[] = [dates[0]];
+  const step = (dates.length - 1) / (MAX_TICKS - 1);
+  for (let i = 1; i < MAX_TICKS - 1; i++) {
+    ticks.push(dates[Math.round(i * step)]);
+  }
+  ticks.push(dates[dates.length - 1]);
+  return ticks;
+}
 
 function formatYAxis(value: number, overlay: ChartOverlay): string {
   if (overlay === 'rank') return `#${value}`;
@@ -73,6 +86,11 @@ export default function RankChart({
     setActiveOverlay(overlay);
   }, []);
 
+  const xTicks = useMemo(
+    () => computeUniformTicks(snapshots.map((s) => s.date)),
+    [snapshots]
+  );
+
   // Suppress unused variable warning — tokenId reserved for future event markers
   void tokenId;
 
@@ -103,6 +121,7 @@ export default function RankChart({
                 dataKey="date"
                 stroke="#9ca3af"
                 tick={{ fontSize: 12 }}
+                ticks={xTicks}
                 tickFormatter={(value: string) => {
                   const parts = value.split('-');
                   return `${parts[1]}/${parts[2]}`;
