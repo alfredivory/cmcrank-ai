@@ -14,6 +14,7 @@ interface TokenListResult {
 
 /**
  * Get paginated token list with latest snapshot data and rank change deltas.
+ * Fetches all matching tokens, sorts globally, then paginates the result.
  */
 export async function getTokenList(params: TokenListParams): Promise<TokenListResult> {
   const { limit, offset, sort, order, category, search } = params;
@@ -36,9 +37,6 @@ export async function getTokenList(params: TokenListParams): Promise<TokenListRe
     };
   }
 
-  // Get total count for pagination
-  const total = await prisma.token.count({ where: whereConditions });
-
   // Find the latest snapshot date
   const latestSnapshot = await prisma.dailySnapshot.findFirst({
     orderBy: { date: 'desc' },
@@ -60,10 +58,8 @@ export async function getTokenList(params: TokenListParams): Promise<TokenListRe
   const date30dAgo = new Date(latestDate);
   date30dAgo.setDate(date30dAgo.getDate() - 30);
 
-  // Determine sort field mapping for Prisma orderBy
-  const orderByClause = buildOrderBy(sort, order);
-
-  // Fetch tokens with their latest snapshot
+  // Fetch ALL matching tokens (no take/skip) so we can sort globally
+  // before paginating. With ~1,000 tokens this is fine for performance.
   const tokens = await prisma.token.findMany({
     where: {
       ...whereConditions,
@@ -79,16 +75,10 @@ export async function getTokenList(params: TokenListParams): Promise<TokenListRe
         orderBy: { date: 'desc' },
       },
     },
-    orderBy: orderByClause,
-    take: limit,
-    skip: offset,
   });
 
-  // If sorting by snapshot-derived fields, we need to sort after fetching
-  // (Prisma can't orderBy nested relation fields directly)
-  const needsPostSort = ['rank', 'price', 'marketCap', 'volume24h', 'rankChange7d', 'rankChange30d'].includes(sort);
-
-  const mappedTokens: TokenListItem[] = tokens.map((token) => {
+  // Map to TokenListItem with computed fields
+  const allTokens: TokenListItem[] = tokens.map((token) => {
     const latestSnap = token.snapshots.find(
       (s) => s.date.getTime() === latestDate.getTime()
     );
@@ -120,26 +110,30 @@ export async function getTokenList(params: TokenListParams): Promise<TokenListRe
     };
   });
 
-  // Post-sort for snapshot-derived fields
-  if (needsPostSort) {
-    const sortKey = (sort === 'rank' ? 'currentRank' : sort) as keyof TokenListItem;
-    mappedTokens.sort((a, b) => {
-      const aVal = a[sortKey] ?? 0;
-      const bVal = b[sortKey] ?? 0;
-      if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return order === 'asc' ? aVal - bVal : bVal - aVal;
-      }
-      return 0;
-    });
-  }
+  // Sort globally across all tokens
+  const sortKey = (sort === 'rank' ? 'currentRank' : sort) as keyof TokenListItem;
+  allTokens.sort((a, b) => {
+    const aVal = a[sortKey] ?? 0;
+    const bVal = b[sortKey] ?? 0;
+    if (typeof aVal === 'string' && typeof bVal === 'string') {
+      return order === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    }
+    if (typeof aVal === 'number' && typeof bVal === 'number') {
+      return order === 'asc' ? aVal - bVal : bVal - aVal;
+    }
+    return 0;
+  });
+
+  // Paginate the sorted results
+  const paginatedTokens = allTokens.slice(offset, offset + limit);
 
   return {
-    tokens: mappedTokens,
+    tokens: paginatedTokens,
     pagination: {
-      total,
+      total: allTokens.length,
       limit,
       offset,
-      hasMore: offset + limit < total,
+      hasMore: offset + limit < allTokens.length,
     },
   };
 }
@@ -228,16 +222,3 @@ export async function getCategories(): Promise<CategoryItem[]> {
     .sort((a, b) => b.count - a.count);
 }
 
-function buildOrderBy(
-  sort: string,
-  order: string
-): Prisma.TokenOrderByWithRelationInput | undefined {
-  switch (sort) {
-    case 'name':
-      return { name: order as Prisma.SortOrder };
-    default:
-      // Snapshot-derived fields (rank, price, marketCap, etc.)
-      // are sorted in-memory after fetch
-      return undefined;
-  }
-}

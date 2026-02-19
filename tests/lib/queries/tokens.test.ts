@@ -140,7 +140,6 @@ describe('getTokenList', () => {
       categories: ['Smart Contracts', 'Layer 1'],
     });
 
-    mockTokenCount.mockResolvedValue(2);
     mockSnapshotFindFirst.mockResolvedValue({ date: latestDate });
     mockTokenFindMany.mockResolvedValue([btc, eth]);
 
@@ -159,7 +158,6 @@ describe('getTokenList', () => {
       rank: 2, rank7d: 5, rank30d: 10,
     });
 
-    mockTokenCount.mockResolvedValue(1);
     mockSnapshotFindFirst.mockResolvedValue({ date: latestDate });
     mockTokenFindMany.mockResolvedValue([token]);
 
@@ -177,7 +175,6 @@ describe('getTokenList', () => {
   it('returns null rank changes when historical data is missing', async () => {
     const token = createMockToken({ rank7d: null, rank30d: null });
 
-    mockTokenCount.mockResolvedValue(1);
     mockSnapshotFindFirst.mockResolvedValue({ date: latestDate });
     mockTokenFindMany.mockResolvedValue([token]);
 
@@ -190,7 +187,6 @@ describe('getTokenList', () => {
   });
 
   it('returns empty result when no snapshots exist', async () => {
-    mockTokenCount.mockResolvedValue(0);
     mockSnapshotFindFirst.mockResolvedValue(null);
 
     const result = await getTokenList({
@@ -202,7 +198,6 @@ describe('getTokenList', () => {
   });
 
   it('passes search filter to query', async () => {
-    mockTokenCount.mockResolvedValue(0);
     mockSnapshotFindFirst.mockResolvedValue({ date: latestDate });
     mockTokenFindMany.mockResolvedValue([]);
 
@@ -223,7 +218,6 @@ describe('getTokenList', () => {
   });
 
   it('passes category filter to query', async () => {
-    mockTokenCount.mockResolvedValue(0);
     mockSnapshotFindFirst.mockResolvedValue({ date: latestDate });
     mockTokenFindMany.mockResolvedValue([]);
 
@@ -231,7 +225,7 @@ describe('getTokenList', () => {
       limit: 100, offset: 0, sort: 'rank', order: 'asc', category: 'Layer 1',
     });
 
-    expect(mockTokenCount).toHaveBeenCalledWith(
+    expect(mockTokenFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           categories: { array_contains: ['Layer 1'] },
@@ -240,27 +234,37 @@ describe('getTokenList', () => {
     );
   });
 
-  it('respects pagination limit and offset', async () => {
-    mockTokenCount.mockResolvedValue(100);
+  it('paginates results in memory after global sort', async () => {
+    const tokens = Array.from({ length: 5 }, (_, i) =>
+      createMockToken({
+        id: `token-${i + 1}`,
+        cmcId: i + 1,
+        name: `Token ${i + 1}`,
+        symbol: `T${i + 1}`,
+        slug: `token-${i + 1}`,
+        rank: i + 1,
+      })
+    );
+
     mockSnapshotFindFirst.mockResolvedValue({ date: latestDate });
-    mockTokenFindMany.mockResolvedValue([]);
+    mockTokenFindMany.mockResolvedValue(tokens);
 
     const result = await getTokenList({
-      limit: 10, offset: 20, sort: 'rank', order: 'asc',
+      limit: 2, offset: 2, sort: 'rank', order: 'asc',
     });
 
-    expect(mockTokenFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({ take: 10, skip: 20 })
-    );
+    // Should return tokens 3 and 4 (0-indexed offset 2, limit 2)
+    expect(result.tokens).toHaveLength(2);
+    expect(result.tokens[0].currentRank).toBe(3);
+    expect(result.tokens[1].currentRank).toBe(4);
     expect(result.pagination).toEqual({
-      total: 100, limit: 10, offset: 20, hasMore: true,
+      total: 5, limit: 2, offset: 2, hasMore: true,
     });
   });
 
   it('extracts categories from token JSON field', async () => {
     const token = createMockToken({ categories: ['DeFi', 'Layer 2'] });
 
-    mockTokenCount.mockResolvedValue(1);
     mockSnapshotFindFirst.mockResolvedValue({ date: latestDate });
     mockTokenFindMany.mockResolvedValue([token]);
 
@@ -274,7 +278,6 @@ describe('getTokenList', () => {
   it('handles tokens with null categories', async () => {
     const token = createMockToken({ categories: null });
 
-    mockTokenCount.mockResolvedValue(1);
     mockSnapshotFindFirst.mockResolvedValue({ date: latestDate });
     mockTokenFindMany.mockResolvedValue([token]);
 
