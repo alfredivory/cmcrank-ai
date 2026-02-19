@@ -105,6 +105,7 @@ CMCRank.ai is a web application focused on **relative performance analysis** of 
 - API responses follow consistent envelope: `{ data: T, error?: string }`
 - Commits reference issue numbers: `feat(F07): implement research trigger #47`
 - Branch naming: `feature/f07-research-trigger`, `fix/f03-chart-inversion`
+- **URL as source of truth for view state** — any user-facing filter, range, sort, or view mode must be reflected in URL search params so the view is shareable and bookmarkable. Server components read `searchParams` to pre-fetch the correct data; client components update the URL via `window.history.replaceState` on state changes. Never store view state only in React state.
 
 ## What NOT to Do
 
