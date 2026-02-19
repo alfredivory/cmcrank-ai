@@ -3,10 +3,18 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import type { ResearchDetail } from '@/types/api';
+import type { RankMovement } from '@/lib/chart-utils';
 
 interface ResearchDocumentProps {
   research: ResearchDetail;
+  movement?: RankMovement;
 }
+
+const MOVEMENT_ACCENT: Record<RankMovement, { border: string; title: string }> = {
+  positive: { border: 'border-l-green-500', title: 'text-green-300' },
+  negative: { border: 'border-l-red-500', title: 'text-red-300' },
+  neutral:  { border: 'border-l-yellow-500', title: 'text-yellow-300' },
+};
 
 interface ResearchContent {
   executiveSummary: string;
@@ -21,13 +29,14 @@ function getImportanceColor(score: number): string {
   return 'text-gray-400';
 }
 
-export default function ResearchDocument({ research }: ResearchDocumentProps) {
+export default function ResearchDocument({ research, movement }: ResearchDocumentProps) {
   const content = research.content as ResearchContent | null;
+  const accent = movement ? MOVEMENT_ACCENT[movement] : null;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
+      <div className={`bg-gray-800/50 border border-gray-700 rounded-xl p-6${accent ? ` border-l-4 ${accent.border}` : ''}`}>
         <div className="flex items-center gap-3 mb-3">
           {research.token.logoUrl && (
             <Image
@@ -39,7 +48,7 @@ export default function ResearchDocument({ research }: ResearchDocumentProps) {
             />
           )}
           <div>
-            <h1 className="text-xl font-semibold text-white">
+            <h1 className={`text-xl font-semibold ${accent ? accent.title : 'text-white'}`}>
               {research.token.name} ({research.token.symbol})
             </h1>
             <p className="text-sm text-gray-400">
@@ -47,6 +56,11 @@ export default function ResearchDocument({ research }: ResearchDocumentProps) {
             </p>
           </div>
         </div>
+        {research.title && (
+          <p className={`text-lg font-medium mb-3 ${accent ? accent.title : 'text-gray-200'}`}>
+            {research.title}
+          </p>
+        )}
         <div className="flex items-center gap-4 text-sm">
           <Link
             href={`/token/${research.token.slug}`}

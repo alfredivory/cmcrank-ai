@@ -52,4 +52,37 @@ describe('ResearchDocument', () => {
     expect(screen.getByText('example.com')).toBeInTheDocument();
     expect(screen.getByText('ETF News')).toBeInTheDocument();
   });
+
+  it('renders green accent border when movement is positive', () => {
+    const { container } = render(<ResearchDocument research={sampleResearch} movement="positive" />);
+    const header = container.querySelector('.border-l-4');
+    expect(header).not.toBeNull();
+    expect(header?.className).toContain('border-l-green-500');
+  });
+
+  it('renders red accent border when movement is negative', () => {
+    const { container } = render(<ResearchDocument research={sampleResearch} movement="negative" />);
+    const header = container.querySelector('.border-l-4');
+    expect(header).not.toBeNull();
+    expect(header?.className).toContain('border-l-red-500');
+  });
+
+  it('renders yellow accent border when movement is neutral', () => {
+    const { container } = render(<ResearchDocument research={sampleResearch} movement="neutral" />);
+    const header = container.querySelector('.border-l-4');
+    expect(header).not.toBeNull();
+    expect(header?.className).toContain('border-l-yellow-500');
+  });
+
+  it('renders no accent border when movement is undefined', () => {
+    const { container } = render(<ResearchDocument research={sampleResearch} />);
+    const header = container.querySelector('.border-l-4');
+    expect(header).toBeNull();
+  });
+
+  it('renders research title with movement color', () => {
+    render(<ResearchDocument research={sampleResearch} movement="positive" />);
+    const titleEl = screen.getByText('The ETF Rally');
+    expect(titleEl.className).toContain('text-green-300');
+  });
 });

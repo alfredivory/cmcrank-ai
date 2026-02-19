@@ -19,7 +19,8 @@ import ResearchBandTooltip from './ResearchBandTooltip';
 import type { ResearchPeriod } from './ResearchBandTooltip';
 import type { SnapshotDataPoint, SnapshotTimeRange, ChartOverlay } from '@/types/api';
 import { formatLargeNumber } from '@/lib/format';
-import { computeUniformTicks } from '@/lib/chart-utils';
+import { computeUniformTicks, computeRankMovement, MOVEMENT_COLORS } from '@/lib/chart-utils';
+import type { RankMovement } from '@/lib/chart-utils';
 
 interface RankChartProps {
   tokenId: string;
@@ -74,7 +75,7 @@ export default function RankChart({
   const [selectionStart, setSelectionStart] = useState<string | null>(null);
   const [selectionEnd, setSelectionEnd] = useState<string | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
-  const [hoveredResearch, setHoveredResearch] = useState<ResearchPeriod | null>(null);
+  const [hoveredResearch, setHoveredResearch] = useState<(ResearchPeriod & { movement: RankMovement }) | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
 
   const snapshotDates = useMemo(() => snapshots.map(s => s.date), [snapshots]);
@@ -83,14 +84,16 @@ export default function RankChart({
     if (!researchPeriods || snapshotDates.length === 0) return [];
     const first = snapshotDates[0];
     const last = snapshotDates[snapshotDates.length - 1];
+    const rankSnapshots = snapshots.map(s => ({ date: s.date, rank: s.rank }));
     return researchPeriods
       .filter(p => p.dateRangeStart <= last && p.dateRangeEnd >= first)
       .map(p => ({
         ...p,
         x1: snapshotDates.find(d => d >= p.dateRangeStart) ?? first,
         x2: [...snapshotDates].reverse().find(d => d <= p.dateRangeEnd) ?? last,
+        movement: computeRankMovement(rankSnapshots, p.dateRangeStart, p.dateRangeEnd),
       }));
-  }, [researchPeriods, snapshotDates]);
+  }, [researchPeriods, snapshotDates, snapshots]);
 
   const fetchSnapshots = useCallback(async (url: string, newRange: SnapshotTimeRange | 'custom') => {
     setLoading(true);
@@ -132,9 +135,9 @@ export default function RankChart({
     if (isSelecting && e?.activeLabel != null) {
       setSelectionEnd(String(e.activeLabel));
     }
-    if (!isSelecting && e?.activeLabel != null && researchPeriods) {
+    if (!isSelecting && e?.activeLabel != null && visibleResearchBands.length > 0) {
       const label = String(e.activeLabel);
-      const match = researchPeriods.find(p => label >= p.dateRangeStart && label <= p.dateRangeEnd);
+      const match = visibleResearchBands.find(p => label >= p.dateRangeStart && label <= p.dateRangeEnd);
       setHoveredResearch(match ?? null);
       if (match && e.activeCoordinate) {
         setTooltipPos({ x: e.activeCoordinate.x, y: e.activeCoordinate.y - 10 });
@@ -142,7 +145,7 @@ export default function RankChart({
     } else if (!isSelecting) {
       setHoveredResearch(null);
     }
-  }, [isSelecting, researchPeriods]);
+  }, [isSelecting, visibleResearchBands]);
 
   const handleMouseUp = useCallback(() => {
     if (isSelecting && selectionStart) {
@@ -153,15 +156,15 @@ export default function RankChart({
         if (start !== end) {
           onRangeSelect?.(start, end);
         }
-      } else if (researchPeriods) {
-        const match = researchPeriods.find(
+      } else if (visibleResearchBands.length > 0) {
+        const match = visibleResearchBands.find(
           p => selectionStart >= p.dateRangeStart && selectionStart <= p.dateRangeEnd
         );
         if (match) router.push(`/research/${match.id}`);
       }
     }
     setIsSelecting(false);
-  }, [isSelecting, selectionStart, selectionEnd, onRangeSelect, researchPeriods, router]);
+  }, [isSelecting, selectionStart, selectionEnd, onRangeSelect, visibleResearchBands, router]);
 
   const handleMouseLeave = useCallback(() => {
     setHoveredResearch(null);
@@ -227,17 +230,20 @@ export default function RankChart({
                 width={80}
               />
               <Tooltip content={<ChartTooltip />} />
-              {visibleResearchBands.map((band) => (
-                <ReferenceArea
-                  key={band.id}
-                  x1={band.x1}
-                  x2={band.x2}
-                  fill="#10b981"
-                  fillOpacity={0.08}
-                  stroke="#10b981"
-                  strokeOpacity={0.2}
-                />
-              ))}
+              {visibleResearchBands.map((band) => {
+                const colors = MOVEMENT_COLORS[band.movement];
+                return (
+                  <ReferenceArea
+                    key={band.id}
+                    x1={band.x1}
+                    x2={band.x2}
+                    fill={colors.fill}
+                    fillOpacity={0.08}
+                    stroke={colors.stroke}
+                    strokeOpacity={0.2}
+                  />
+                );
+              })}
               <Line
                 type="monotone"
                 dataKey={activeOverlay}
@@ -259,7 +265,7 @@ export default function RankChart({
           </ResponsiveContainer>
         )}
         {hoveredResearch && (
-          <ResearchBandTooltip research={hoveredResearch} x={tooltipPos.x} y={tooltipPos.y} />
+          <ResearchBandTooltip research={hoveredResearch} x={tooltipPos.x} y={tooltipPos.y} movement={hoveredResearch.movement} />
         )}
       </div>
     </div>

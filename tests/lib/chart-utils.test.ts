@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeUniformTicks } from '@/lib/chart-utils';
+import { computeUniformTicks, computeRankMovement, MOVEMENT_COLORS } from '@/lib/chart-utils';
 
 /** Generate an array of consecutive YYYY-MM-DD date strings starting from a date. */
 function generateDailyDates(start: string, count: number): string[] {
@@ -259,5 +259,96 @@ describe('computeUniformTicks', () => {
     // First and last must be included
     expect(ticks[0]).toBe('2026-01-01');
     expect(ticks[ticks.length - 1]).toBe('2026-01-20');
+  });
+});
+
+describe('computeRankMovement', () => {
+  it('returns positive when rank improved by more than 5%', () => {
+    const snapshots = [
+      { date: '2026-01-01', rank: 100 },
+      { date: '2026-01-15', rank: 80 },
+      { date: '2026-01-31', rank: 90 }, // 10% improvement from 100→90
+    ];
+    expect(computeRankMovement(snapshots, '2026-01-01', '2026-01-31')).toBe('positive');
+  });
+
+  it('returns negative when rank worsened by more than 5%', () => {
+    const snapshots = [
+      { date: '2026-01-01', rank: 50 },
+      { date: '2026-01-15', rank: 55 },
+      { date: '2026-01-31', rank: 60 }, // 20% worse from 50→60
+    ];
+    expect(computeRankMovement(snapshots, '2026-01-01', '2026-01-31')).toBe('negative');
+  });
+
+  it('returns neutral when rank change is within 5% threshold', () => {
+    const snapshots = [
+      { date: '2026-01-01', rank: 100 },
+      { date: '2026-01-15', rank: 110 },
+      { date: '2026-01-31', rank: 103 }, // 3% change
+    ];
+    expect(computeRankMovement(snapshots, '2026-01-01', '2026-01-31')).toBe('neutral');
+  });
+
+  it('returns neutral when fewer than 2 snapshots in range', () => {
+    const snapshots = [
+      { date: '2026-01-01', rank: 100 },
+    ];
+    expect(computeRankMovement(snapshots, '2026-01-01', '2026-01-31')).toBe('neutral');
+  });
+
+  it('returns neutral for empty snapshots', () => {
+    expect(computeRankMovement([], '2026-01-01', '2026-01-31')).toBe('neutral');
+  });
+
+  it('filters snapshots to the given date range', () => {
+    const snapshots = [
+      { date: '2025-12-01', rank: 200 }, // outside range
+      { date: '2026-01-01', rank: 100 },
+      { date: '2026-01-31', rank: 80 },
+      { date: '2026-03-01', rank: 300 }, // outside range
+    ];
+    // Only considers 100→80 (20% improvement)
+    expect(computeRankMovement(snapshots, '2026-01-01', '2026-01-31')).toBe('positive');
+  });
+
+  it('returns neutral when first rank is zero', () => {
+    const snapshots = [
+      { date: '2026-01-01', rank: 0 },
+      { date: '2026-01-31', rank: 50 },
+    ];
+    expect(computeRankMovement(snapshots, '2026-01-01', '2026-01-31')).toBe('neutral');
+  });
+
+  it('handles exact 5% boundary as neutral', () => {
+    const snapshots = [
+      { date: '2026-01-01', rank: 100 },
+      { date: '2026-01-31', rank: 105 }, // exactly 5% worse
+    ];
+    expect(computeRankMovement(snapshots, '2026-01-01', '2026-01-31')).toBe('neutral');
+  });
+
+  it('detects just over 5% threshold as negative', () => {
+    const snapshots = [
+      { date: '2026-01-01', rank: 100 },
+      { date: '2026-01-31', rank: 106 }, // 6% worse
+    ];
+    expect(computeRankMovement(snapshots, '2026-01-01', '2026-01-31')).toBe('negative');
+  });
+
+  it('detects just over 5% improvement as positive', () => {
+    const snapshots = [
+      { date: '2026-01-01', rank: 100 },
+      { date: '2026-01-31', rank: 94 }, // 6% improvement
+    ];
+    expect(computeRankMovement(snapshots, '2026-01-01', '2026-01-31')).toBe('positive');
+  });
+});
+
+describe('MOVEMENT_COLORS', () => {
+  it('has fill and stroke for all three movements', () => {
+    expect(MOVEMENT_COLORS.positive).toEqual({ fill: '#22c55e', stroke: '#22c55e' });
+    expect(MOVEMENT_COLORS.negative).toEqual({ fill: '#ef4444', stroke: '#ef4444' });
+    expect(MOVEMENT_COLORS.neutral).toEqual({ fill: '#eab308', stroke: '#eab308' });
   });
 });

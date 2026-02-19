@@ -7,7 +7,8 @@ import SiteFooter from '@/components/layout/SiteFooter';
 import ResearchDocument from '@/components/research/ResearchDocument';
 import ResearchFeedback from '@/components/research/ResearchFeedback';
 import { getResearchById } from '@/lib/queries/research';
-import { getLatestSnapshotDate } from '@/lib/queries/tokens';
+import { getLatestSnapshotDate, getSnapshotHistory } from '@/lib/queries/tokens';
+import { computeRankMovement } from '@/lib/chart-utils';
 import type { ResearchDetail } from '@/types/api';
 
 interface ResearchPageProps {
@@ -44,6 +45,19 @@ export default async function ResearchPage({ params }: ResearchPageProps) {
     notFound();
   }
 
+  // Compute rank movement for the research period
+  const periodSnapshots = await getSnapshotHistory(
+    research.tokenId,
+    'all',
+    research.dateRangeStart,
+    research.dateRangeEnd,
+  );
+  const movement = computeRankMovement(
+    periodSnapshots,
+    research.dateRangeStart.toISOString().split('T')[0],
+    research.dateRangeEnd.toISOString().split('T')[0],
+  );
+
   // Serialize for client components
   const serializedResearch: ResearchDetail = {
     id: research.id,
@@ -71,7 +85,7 @@ export default async function ResearchPage({ params }: ResearchPageProps) {
       <div className="container mx-auto px-4 py-8">
         <SiteHeader />
 
-        <ResearchDocument research={serializedResearch} />
+        <ResearchDocument research={serializedResearch} movement={movement} />
 
         {research.status === 'COMPLETE' && (
           <div className="mt-6 max-w-4xl mx-auto">
