@@ -155,19 +155,20 @@ model DailySnapshot {
 // ============================================================================
 
 model BackfillJob {
-  id              String          @id @default(cuid())
-  month           Int
-  year            Int
-  tokenScope      Int             @default(100) // How many tokens to backfill
-  status          BackfillStatus  @default(QUEUED)
-  startedAt       DateTime?
-  completedAt     DateTime?
-  tokensProcessed Int             @default(0)
-  errors          Json?           // Array of error messages
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id                 String          @id @default(cuid())
+  dateRangeStart     DateTime        @db.Date
+  dateRangeEnd       DateTime        @db.Date
+  tokenScope         Int             @default(1000)
+  status             BackfillStatus  @default(QUEUED)
+  startedAt          DateTime?
+  completedAt        DateTime?
+  tokensProcessed    Int             @default(0)
+  lastProcessedCmcId Int?            // For resuming after failure
+  errors             Json?           // Array of error messages
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 
-  @@unique([year, month, tokenScope])
+  @@unique([dateRangeStart, dateRangeEnd, tokenScope])
   @@index([status])
 }
 
