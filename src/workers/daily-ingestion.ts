@@ -15,6 +15,10 @@ function todayUTC(): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
+function cmcLogoUrl(cmcId: number): string {
+  return `https://s2.coinmarketcap.com/static/img/coins/64x64/${cmcId}.png`;
+}
+
 function mapTokenFields(cmcToken: CMCToken) {
   return {
     cmcId: cmcToken.id,
@@ -24,6 +28,7 @@ function mapTokenFields(cmcToken: CMCToken) {
     categories: cmcToken.tags.length > 0 ? cmcToken.tags : undefined,
     chain: cmcToken.platform?.name ?? null,
     launchDate: cmcToken.date_added ? new Date(cmcToken.date_added) : null,
+    logoUrl: cmcLogoUrl(cmcToken.id),
     isTracked: true,
   };
 }
@@ -65,6 +70,7 @@ export async function runDailyIngestion(
           symbol: tokenData.symbol,
           categories: tokenData.categories,
           chain: tokenData.chain,
+          logoUrl: tokenData.logoUrl,
           isTracked: true,
         },
         create: tokenData,

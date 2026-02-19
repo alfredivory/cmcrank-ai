@@ -7,6 +7,10 @@ import type {
   CategoryItem,
 } from '@/types/api';
 
+function resolveLogoUrl(logoUrl: string | null, cmcId: number): string {
+  return logoUrl ?? `https://s2.coinmarketcap.com/static/img/coins/64x64/${cmcId}.png`;
+}
+
 interface TokenListResult {
   tokens: TokenListItem[];
   pagination: Pagination;
@@ -99,7 +103,7 @@ export async function getTokenList(params: TokenListParams): Promise<TokenListRe
       name: token.name,
       symbol: token.symbol,
       slug: token.slug,
-      logoUrl: token.logoUrl,
+      logoUrl: resolveLogoUrl(token.logoUrl, token.cmcId),
       currentRank,
       price: latestSnap ? Number(latestSnap.priceUsd) : 0,
       marketCap: latestSnap ? Number(latestSnap.marketCap) : 0,
@@ -187,7 +191,7 @@ export async function getTokenBySlug(slug: string): Promise<TokenListItem | null
     name: token.name,
     symbol: token.symbol,
     slug: token.slug,
-    logoUrl: token.logoUrl,
+    logoUrl: resolveLogoUrl(token.logoUrl, token.cmcId),
     currentRank,
     price: latestSnap ? Number(latestSnap.priceUsd) : 0,
     marketCap: latestSnap ? Number(latestSnap.marketCap) : 0,
