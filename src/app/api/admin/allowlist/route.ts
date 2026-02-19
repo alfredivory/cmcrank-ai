@@ -64,9 +64,9 @@ export async function POST(request: Request) {
       },
     });
 
-    // Re-check all users against the new entry
+    // Re-check users without an override against the new entry
     const users = await prisma.user.findMany({
-      where: { email: { not: null }, isAllowlisted: false },
+      where: { email: { not: null }, isAllowlisted: false, allowlistOverride: null },
       select: { id: true, email: true },
     });
 
@@ -116,10 +116,10 @@ export async function DELETE(request: Request) {
 
     await prisma.allowlistEntry.delete({ where: { id } });
 
-    // Re-check affected users — users matching this pattern might no longer be allowlisted
+    // Re-check affected users — skip those with an override
     const remainingEntries = await prisma.allowlistEntry.findMany();
     const users = await prisma.user.findMany({
-      where: { email: { not: null }, isAllowlisted: true },
+      where: { email: { not: null }, isAllowlisted: true, allowlistOverride: null },
       select: { id: true, email: true },
     });
 

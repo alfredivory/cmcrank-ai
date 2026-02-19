@@ -1,4 +1,4 @@
-import type { UserRole } from '@prisma/client';
+import type { UserRole, AllowlistOverride } from '@prisma/client';
 import 'next-auth';
 
 declare module 'next-auth' {
@@ -20,6 +20,7 @@ declare module 'next-auth' {
     researchCreditsUsed: number;
     creditsResetAt: Date;
     dailyCreditLimit: number | null;
+    allowlistOverride: AllowlistOverride | null;
   }
 }
 
@@ -30,5 +31,6 @@ declare module 'next-auth/adapters' {
     researchCreditsUsed: number;
     creditsResetAt: Date;
     dailyCreditLimit: number | null;
+    allowlistOverride: AllowlistOverride | null;
   }
 }

@@ -26,6 +26,10 @@ vi.mock('@/lib/auth/helpers', () => ({
   isAuthError: (result: unknown) => result instanceof Response,
 }));
 
+vi.mock('@/lib/auth/allowlist', () => ({
+  isEmailAllowlisted: vi.fn().mockResolvedValue(false),
+}));
+
 import { GET, PATCH } from '@/app/api/admin/users/route';
 import { prisma } from '@/lib/db';
 
@@ -183,29 +187,43 @@ describe('PATCH /api/admin/users', () => {
     expect(res.status).toBe(400);
   });
 
-  it('updates isAllowlisted to true', async () => {
-    mockUpdate.mockResolvedValue({ id: 'u2', role: 'USER', email: 'user@test.com', isAllowlisted: true, dailyCreditLimit: null } as never);
+  it('sets allowlistOverride to FORCE_YES and updates isAllowlisted', async () => {
+    mockUpdate.mockResolvedValue({ id: 'u2', role: 'USER', email: 'user@test.com', isAllowlisted: true, allowlistOverride: 'FORCE_YES', dailyCreditLimit: null } as never);
 
     const req = new Request('http://localhost:3000/api/admin/users', {
       method: 'PATCH',
-      body: JSON.stringify({ userId: 'u2', isAllowlisted: true }),
+      body: JSON.stringify({ userId: 'u2', allowlistOverride: 'FORCE_YES' }),
     });
     const res = await PATCH(req);
     const body = await res.json();
     expect(res.status).toBe(200);
     expect(body.data.isAllowlisted).toBe(true);
+    expect(body.data.allowlistOverride).toBe('FORCE_YES');
   });
 
-  it('updates isAllowlisted to false', async () => {
-    mockUpdate.mockResolvedValue({ id: 'u2', role: 'USER', email: 'user@test.com', isAllowlisted: false, dailyCreditLimit: null } as never);
+  it('sets allowlistOverride to FORCE_NO and updates isAllowlisted', async () => {
+    mockUpdate.mockResolvedValue({ id: 'u2', role: 'USER', email: 'user@test.com', isAllowlisted: false, allowlistOverride: 'FORCE_NO', dailyCreditLimit: null } as never);
 
     const req = new Request('http://localhost:3000/api/admin/users', {
       method: 'PATCH',
-      body: JSON.stringify({ userId: 'u2', isAllowlisted: false }),
+      body: JSON.stringify({ userId: 'u2', allowlistOverride: 'FORCE_NO' }),
     });
     const res = await PATCH(req);
     const body = await res.json();
     expect(res.status).toBe(200);
     expect(body.data.isAllowlisted).toBe(false);
+    expect(body.data.allowlistOverride).toBe('FORCE_NO');
+  });
+
+  it('resets allowlistOverride to null and re-checks patterns', async () => {
+    mockFindUnique.mockResolvedValue({ email: 'user@test.com' } as never);
+    mockUpdate.mockResolvedValue({ id: 'u2', role: 'USER', email: 'user@test.com', isAllowlisted: false, allowlistOverride: null, dailyCreditLimit: null } as never);
+
+    const req = new Request('http://localhost:3000/api/admin/users', {
+      method: 'PATCH',
+      body: JSON.stringify({ userId: 'u2', allowlistOverride: null }),
+    });
+    const res = await PATCH(req);
+    expect(res.status).toBe(200);
   });
 });

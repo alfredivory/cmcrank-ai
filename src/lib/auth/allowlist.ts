@@ -43,16 +43,38 @@ export async function isEmailAllowlisted(email: string): Promise<boolean> {
 }
 
 /**
+ * Resolves a user's effective allowlist status.
+ * If the user has an override (FORCE_YES/FORCE_NO), that takes precedence.
+ * Otherwise, checks against allowlist patterns.
+ */
+export function resolveAllowlistStatus(
+  override: string | null,
+  matchesPatterns: boolean
+): boolean {
+  if (override === 'FORCE_YES') return true;
+  if (override === 'FORCE_NO') return false;
+  return matchesPatterns;
+}
+
+/**
  * Updates a user's isAllowlisted status based on current allowlist entries.
+ * Respects allowlistOverride — users with an override are not changed by patterns.
  */
 export async function refreshUserAllowlistStatus(
   userId: string,
   email: string
 ): Promise<boolean> {
-  const allowlisted = await isEmailAllowlisted(email);
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { allowlistOverride: true },
+  });
+
+  const matchesPatterns = await isEmailAllowlisted(email);
+  const isAllowlisted = resolveAllowlistStatus(user.allowlistOverride, matchesPatterns);
+
   await prisma.user.update({
     where: { id: userId },
-    data: { isAllowlisted: allowlisted },
+    data: { isAllowlisted },
   });
-  return allowlisted;
+  return isAllowlisted;
 }

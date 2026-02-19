@@ -34,6 +34,7 @@ export async function GET(request: Request) {
         image: true,
         role: true,
         isAllowlisted: true,
+        allowlistOverride: true,
         dailyCreditLimit: true,
         createdAt: true,
       },
@@ -62,18 +63,18 @@ export async function PATCH(request: Request) {
 
   try {
     const body = await request.json();
-    const { userId, role, dailyCreditLimit, isAllowlisted } = body as {
+    const { userId, role, dailyCreditLimit, allowlistOverride } = body as {
       userId: string;
       role?: string;
       dailyCreditLimit?: number | null;
-      isAllowlisted?: boolean;
+      allowlistOverride?: 'FORCE_YES' | 'FORCE_NO' | null;
     };
 
     if (!userId) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     }
 
-    if (role === undefined && dailyCreditLimit === undefined && isAllowlisted === undefined) {
+    if (role === undefined && dailyCreditLimit === undefined && allowlistOverride === undefined) {
       return NextResponse.json({ error: 'No update fields provided' }, { status: 400 });
     }
 
@@ -102,12 +103,26 @@ export async function PATCH(request: Request) {
       updateData.role = role;
     }
 
-    // Handle isAllowlisted update
-    if (isAllowlisted !== undefined) {
-      if (typeof isAllowlisted !== 'boolean') {
-        return NextResponse.json({ error: 'isAllowlisted must be a boolean' }, { status: 400 });
+    // Handle allowlistOverride update
+    if (allowlistOverride !== undefined) {
+      if (allowlistOverride !== null && allowlistOverride !== 'FORCE_YES' && allowlistOverride !== 'FORCE_NO') {
+        return NextResponse.json({ error: 'allowlistOverride must be FORCE_YES, FORCE_NO, or null' }, { status: 400 });
       }
-      updateData.isAllowlisted = isAllowlisted;
+      updateData.allowlistOverride = allowlistOverride;
+      // Also update isAllowlisted to match the override immediately
+      if (allowlistOverride === 'FORCE_YES') {
+        updateData.isAllowlisted = true;
+      } else if (allowlistOverride === 'FORCE_NO') {
+        updateData.isAllowlisted = false;
+      }
+      // If null (reset to auto), re-check against patterns
+      if (allowlistOverride === null) {
+        const targetUser = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+        if (targetUser?.email) {
+          const { isEmailAllowlisted } = await import('@/lib/auth/allowlist');
+          updateData.isAllowlisted = await isEmailAllowlisted(targetUser.email);
+        }
+      }
     }
 
     // Handle dailyCreditLimit update
@@ -121,7 +136,7 @@ export async function PATCH(request: Request) {
     const updated = await prisma.user.update({
       where: { id: userId },
       data: updateData,
-      select: { id: true, role: true, email: true, isAllowlisted: true, dailyCreditLimit: true },
+      select: { id: true, role: true, email: true, isAllowlisted: true, allowlistOverride: true, dailyCreditLimit: true },
     });
 
     logger.info('admin.users.updated', {

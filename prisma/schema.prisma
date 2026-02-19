@@ -49,7 +49,8 @@ model User {
   isAllowlisted       Boolean   @default(false)
   researchCreditsUsed Int       @default(0)
   creditsResetAt      DateTime  @default(now())
-  dailyCreditLimit    Int?      // Per-user override; null = use global default
+  dailyCreditLimit    Int?               // Per-user override; null = use global default
+  allowlistOverride   AllowlistOverride? // Admin override; null = follow patterns
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
@@ -74,6 +75,11 @@ model VerificationToken {
 enum UserRole {
   USER
   ADMIN
+}
+
+enum AllowlistOverride {
+  FORCE_YES
+  FORCE_NO
 }
 
 // ============================================================================

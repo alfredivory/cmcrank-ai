@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 
+type AllowlistOverride = 'FORCE_YES' | 'FORCE_NO' | null;
+
 interface UserRecord {
   id: string;
   name: string | null;
@@ -10,8 +12,28 @@ interface UserRecord {
   image: string | null;
   role: 'USER' | 'ADMIN';
   isAllowlisted: boolean;
+  allowlistOverride: AllowlistOverride;
   dailyCreditLimit: number | null;
   createdAt: string;
+}
+
+function getAllowlistLabel(user: UserRecord): string {
+  if (user.allowlistOverride === 'FORCE_YES') return 'Yes (manual)';
+  if (user.allowlistOverride === 'FORCE_NO') return 'No (manual)';
+  return user.isAllowlisted ? 'Yes (auto)' : 'No';
+}
+
+function getAllowlistStyle(user: UserRecord): string {
+  if (user.isAllowlisted) return 'bg-green-600/20 text-green-400 hover:bg-green-600/40';
+  return 'bg-gray-700 text-gray-500 hover:bg-gray-600 hover:text-gray-300';
+}
+
+function getNextOverride(user: UserRecord): AllowlistOverride {
+  // Cycle: current state → toggle
+  // If currently allowlisted (any reason) → FORCE_NO
+  // If currently not allowlisted → FORCE_YES
+  if (user.isAllowlisted) return 'FORCE_NO';
+  return 'FORCE_YES';
 }
 
 export default function AdminUsersTab() {
@@ -46,23 +68,52 @@ export default function AdminUsersTab() {
     return () => clearTimeout(timeout);
   }, [loadUsers]);
 
-  async function toggleAllowlist(userId: string, current: boolean) {
+  async function toggleAllowlist(user: UserRecord) {
+    const newOverride = getNextOverride(user);
     try {
       const res = await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, isAllowlisted: !current }),
+        body: JSON.stringify({ userId: user.id, allowlistOverride: newOverride }),
       });
       const body = await res.json();
       if (res.ok) {
         setUsers((prev) =>
-          prev.map((u) => (u.id === userId ? { ...u, isAllowlisted: !current } : u))
+          prev.map((u) =>
+            u.id === user.id
+              ? { ...u, isAllowlisted: body.data.isAllowlisted, allowlistOverride: newOverride }
+              : u
+          )
         );
       } else {
         setError(body.error || 'Failed to update allowlist status');
       }
     } catch {
       setError('Failed to update allowlist status');
+    }
+  }
+
+  async function resetAllowlistOverride(userId: string) {
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, allowlistOverride: null }),
+      });
+      const body = await res.json();
+      if (res.ok) {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === userId
+              ? { ...u, isAllowlisted: body.data.isAllowlisted, allowlistOverride: null }
+              : u
+          )
+        );
+      } else {
+        setError(body.error || 'Failed to reset allowlist override');
+      }
+    } catch {
+      setError('Failed to reset allowlist override');
     }
   }
 
@@ -174,17 +225,24 @@ export default function AdminUsersTab() {
                     </span>
                   </td>
                   <td className="py-3 pr-4">
-                    <button
-                      onClick={() => toggleAllowlist(user.id, user.isAllowlisted)}
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
-                        user.isAllowlisted
-                          ? 'bg-green-600/20 text-green-400 hover:bg-green-600/40'
-                          : 'bg-gray-700 text-gray-500 hover:bg-gray-600 hover:text-gray-300'
-                      }`}
-                      title={user.isAllowlisted ? 'Click to remove from allowlist' : 'Click to allowlist'}
-                    >
-                      {user.isAllowlisted ? 'Yes' : 'No'}
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => toggleAllowlist(user)}
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${getAllowlistStyle(user)}`}
+                        title={user.isAllowlisted ? 'Click to deny access' : 'Click to grant access'}
+                      >
+                        {getAllowlistLabel(user)}
+                      </button>
+                      {user.allowlistOverride && (
+                        <button
+                          onClick={() => resetAllowlistOverride(user.id)}
+                          className="text-gray-500 hover:text-gray-300 text-xs transition-colors"
+                          title="Reset to auto (follow allowlist patterns)"
+                        >
+                          reset
+                        </button>
+                      )}
+                    </div>
                   </td>
                   <td className="py-3 pr-4">
                     {user.role === 'ADMIN' ? (
