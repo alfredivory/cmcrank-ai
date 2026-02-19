@@ -7,12 +7,14 @@ import AdminDataTab from './tabs/AdminDataTab';
 import AdminUsersTab from './tabs/AdminUsersTab';
 import AdminAllowlistTab from './tabs/AdminAllowlistTab';
 import AdminAccessRequestsTab from './tabs/AdminAccessRequestsTab';
+import AdminResearchTab from './tabs/AdminResearchTab';
 
 const TABS = [
   { key: 'data', label: 'Data' },
   { key: 'users', label: 'Users' },
   { key: 'allowlist', label: 'Allowlist' },
   { key: 'requests', label: 'Access Requests' },
+  { key: 'research', label: 'Research' },
 ] as const;
 
 type TabKey = (typeof TABS)[number]['key'];
@@ -69,6 +71,7 @@ export default function AdminLayout({ initialTab }: AdminLayoutProps) {
       {activeTab === 'users' && <AdminUsersTab />}
       {activeTab === 'allowlist' && <AdminAllowlistTab />}
       {activeTab === 'requests' && <AdminAccessRequestsTab />}
+      {activeTab === 'research' && <AdminResearchTab />}
     </div>
   );
 }

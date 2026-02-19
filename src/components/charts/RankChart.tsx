@@ -9,6 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  ReferenceArea,
 } from 'recharts';
 import TimeRangeSelector from './TimeRangeSelector';
 import OverlaySelector from './OverlaySelector';
@@ -23,6 +24,7 @@ interface RankChartProps {
   initialSnapshots: SnapshotDataPoint[];
   initialRange: SnapshotTimeRange | 'custom';
   initialOverlay?: ChartOverlay;
+  onRangeSelect?: (start: string, end: string) => void;
 }
 
 const OVERLAY_COLORS: Record<ChartOverlay, string> = {
@@ -58,11 +60,15 @@ export default function RankChart({
   initialSnapshots,
   initialRange,
   initialOverlay = 'rank',
+  onRangeSelect,
 }: RankChartProps) {
   const [snapshots, setSnapshots] = useState<SnapshotDataPoint[]>(initialSnapshots);
   const [range, setRange] = useState<SnapshotTimeRange | 'custom'>(initialRange);
   const [activeOverlay, setActiveOverlay] = useState<ChartOverlay>(initialOverlay);
   const [loading, setLoading] = useState(false);
+  const [selectionStart, setSelectionStart] = useState<string | null>(null);
+  const [selectionEnd, setSelectionEnd] = useState<string | null>(null);
+  const [isSelecting, setIsSelecting] = useState(false);
 
   const fetchSnapshots = useCallback(async (url: string, newRange: SnapshotTimeRange | 'custom') => {
     setLoading(true);
@@ -91,6 +97,32 @@ export default function RankChart({
     setActiveOverlay(overlay);
     updateUrl({ range: range === 'custom' ? 'custom' : range, overlay });
   }, [range]);
+
+  const handleMouseDown = useCallback((e: { activeLabel?: string | number }) => {
+    if (e?.activeLabel != null) {
+      setSelectionStart(String(e.activeLabel));
+      setSelectionEnd(null);
+      setIsSelecting(true);
+    }
+  }, []);
+
+  const handleMouseMove = useCallback((e: { activeLabel?: string | number }) => {
+    if (isSelecting && e?.activeLabel != null) {
+      setSelectionEnd(String(e.activeLabel));
+    }
+  }, [isSelecting]);
+
+  const handleMouseUp = useCallback(() => {
+    if (isSelecting && selectionStart && selectionEnd) {
+      const [start, end] = selectionStart < selectionEnd
+        ? [selectionStart, selectionEnd]
+        : [selectionEnd, selectionStart];
+      if (start !== end) {
+        onRangeSelect?.(start, end);
+      }
+    }
+    setIsSelecting(false);
+  }, [isSelecting, selectionStart, selectionEnd, onRangeSelect]);
 
   const xTicks = useMemo(
     () => computeUniformTicks(snapshots.map((s) => s.date)),
@@ -121,7 +153,14 @@ export default function RankChart({
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={snapshots} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+            <LineChart
+              data={snapshots}
+              margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              style={{ cursor: onRangeSelect ? 'crosshair' : undefined }}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
               <XAxis
                 dataKey="date"
@@ -150,6 +189,15 @@ export default function RankChart({
                 dot={false}
                 activeDot={{ r: 5, strokeWidth: 2 }}
               />
+              {selectionStart && selectionEnd && (
+                <ReferenceArea
+                  x1={selectionStart < selectionEnd ? selectionStart : selectionEnd}
+                  x2={selectionStart < selectionEnd ? selectionEnd : selectionStart}
+                  strokeOpacity={0.3}
+                  fill="#3b82f6"
+                  fillOpacity={0.2}
+                />
+              )}
             </LineChart>
           </ResponsiveContainer>
         )}
