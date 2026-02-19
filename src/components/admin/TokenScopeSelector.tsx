@@ -3,7 +3,11 @@
 import { useState, useEffect } from 'react';
 
 interface TokenScopeSelectorProps {
-  adminSecret: string;
+  adminSecret?: string;
+}
+
+function buildHeaders(adminSecret?: string): Record<string, string> {
+  return adminSecret ? { 'x-admin-secret': adminSecret } : {};
 }
 
 const SCOPE_OPTIONS = [100, 200, 500, 1000];
@@ -17,7 +21,7 @@ export default function TokenScopeSelector({ adminSecret }: TokenScopeSelectorPr
     async function loadConfig() {
       try {
         const res = await fetch('/api/admin/config', {
-          headers: { 'x-admin-secret': adminSecret },
+          headers: buildHeaders(adminSecret),
         });
         const data = await res.json();
         if (res.ok && data.data?.token_scope != null) {
@@ -39,7 +43,7 @@ export default function TokenScopeSelector({ adminSecret }: TokenScopeSelectorPr
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-secret': adminSecret,
+          ...buildHeaders(adminSecret),
         },
         body: JSON.stringify({ key: 'token_scope', value: newScope }),
       });

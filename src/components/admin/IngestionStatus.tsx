@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 interface IngestionStatusProps {
-  adminSecret: string;
+  adminSecret?: string;
 }
 
 interface IngestionResult {
@@ -12,6 +12,10 @@ interface IngestionResult {
   skipped: number;
   errors: number;
   durationMs: number;
+}
+
+function buildHeaders(adminSecret?: string): Record<string, string> {
+  return adminSecret ? { 'x-admin-secret': adminSecret } : {};
 }
 
 export default function IngestionStatus({ adminSecret }: IngestionStatusProps) {
@@ -27,7 +31,7 @@ export default function IngestionStatus({ adminSecret }: IngestionStatusProps) {
     try {
       const res = await fetch('/api/admin/ingest', {
         method: 'POST',
-        headers: { 'x-admin-secret': adminSecret },
+        headers: buildHeaders(adminSecret),
       });
 
       const data = await res.json();

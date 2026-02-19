@@ -3,7 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 
 interface BackfillStatusProps {
-  adminSecret: string;
+  adminSecret?: string;
+}
+
+function buildHeaders(adminSecret?: string): Record<string, string> {
+  return adminSecret ? { 'x-admin-secret': adminSecret } : {};
 }
 
 interface BackfillJob {
@@ -47,7 +51,7 @@ export default function BackfillStatus({ adminSecret }: BackfillStatusProps) {
   const loadJobs = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/backfill', {
-        headers: { 'x-admin-secret': adminSecret },
+        headers: buildHeaders(adminSecret),
       });
       const data = await res.json();
       if (res.ok) {
@@ -76,7 +80,7 @@ export default function BackfillStatus({ adminSecret }: BackfillStatusProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-secret': adminSecret,
+          ...buildHeaders(adminSecret),
         },
         body: JSON.stringify({
           dateRangeStart: dateStart,
@@ -104,7 +108,7 @@ export default function BackfillStatus({ adminSecret }: BackfillStatusProps) {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-secret': adminSecret,
+          ...buildHeaders(adminSecret),
         },
         body: JSON.stringify({ jobId, action: 'pause' }),
       });

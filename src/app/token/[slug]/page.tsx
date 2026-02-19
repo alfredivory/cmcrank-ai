@@ -6,6 +6,7 @@ import type { Metadata } from 'next';
 import TokenHeader from '@/components/tokens/TokenHeader';
 import RankChart from '@/components/charts/RankChart';
 import SiteFooter from '@/components/layout/SiteFooter';
+import SiteHeader from '@/components/layout/SiteHeader';
 import { getTokenDetailBySlug, getSnapshotHistory, getLatestSnapshotDate } from '@/lib/queries/tokens';
 import type { SnapshotTimeRange, ChartOverlay } from '@/types/api';
 
@@ -69,6 +70,8 @@ export default async function TokenPage({ params, searchParams }: TokenPageProps
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
       <div className="container mx-auto px-4 py-8">
+        <SiteHeader />
+
         {/* Back link */}
         <Link
           href="/"
