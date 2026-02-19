@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import { formatPrice, formatLargeNumber, formatRankChange } from '@/lib/format';
+import CategoryTags from './CategoryTags';
 import type { TokenDetailExtended } from '@/types/api';
 
 interface TokenHeaderProps {
@@ -81,18 +82,7 @@ export default function TokenHeader({ token }: TokenHeaderProps) {
       </div>
 
       {/* Category tags */}
-      {token.categories.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {token.categories.map((category) => (
-            <span
-              key={category}
-              className="bg-gray-700/50 text-gray-300 px-3 py-1 rounded-full text-xs"
-            >
-              {category}
-            </span>
-          ))}
-        </div>
-      )}
+      <CategoryTags categories={token.categories} />
     </div>
   );
 }
