@@ -46,6 +46,26 @@ export default function AdminUsersTab() {
     return () => clearTimeout(timeout);
   }, [loadUsers]);
 
+  async function toggleAllowlist(userId: string, current: boolean) {
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, isAllowlisted: !current }),
+      });
+      const body = await res.json();
+      if (res.ok) {
+        setUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, isAllowlisted: !current } : u))
+        );
+      } else {
+        setError(body.error || 'Failed to update allowlist status');
+      }
+    } catch {
+      setError('Failed to update allowlist status');
+    }
+  }
+
   async function toggleRole(userId: string, currentRole: 'USER' | 'ADMIN') {
     const newRole = currentRole === 'ADMIN' ? 'USER' : 'ADMIN';
     try {
@@ -154,9 +174,17 @@ export default function AdminUsersTab() {
                     </span>
                   </td>
                   <td className="py-3 pr-4">
-                    <span className={user.isAllowlisted ? 'text-green-400' : 'text-gray-500'}>
+                    <button
+                      onClick={() => toggleAllowlist(user.id, user.isAllowlisted)}
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
+                        user.isAllowlisted
+                          ? 'bg-green-600/20 text-green-400 hover:bg-green-600/40'
+                          : 'bg-gray-700 text-gray-500 hover:bg-gray-600 hover:text-gray-300'
+                      }`}
+                      title={user.isAllowlisted ? 'Click to remove from allowlist' : 'Click to allowlist'}
+                    >
                       {user.isAllowlisted ? 'Yes' : 'No'}
-                    </span>
+                    </button>
                   </td>
                   <td className="py-3 pr-4">
                     {user.role === 'ADMIN' ? (

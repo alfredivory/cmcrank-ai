@@ -62,18 +62,19 @@ export async function PATCH(request: Request) {
 
   try {
     const body = await request.json();
-    const { userId, role, dailyCreditLimit } = body as {
+    const { userId, role, dailyCreditLimit, isAllowlisted } = body as {
       userId: string;
       role?: string;
       dailyCreditLimit?: number | null;
+      isAllowlisted?: boolean;
     };
 
     if (!userId) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     }
 
-    if (role === undefined && dailyCreditLimit === undefined) {
-      return NextResponse.json({ error: 'role or dailyCreditLimit is required' }, { status: 400 });
+    if (role === undefined && dailyCreditLimit === undefined && isAllowlisted === undefined) {
+      return NextResponse.json({ error: 'No update fields provided' }, { status: 400 });
     }
 
     const updateData: Record<string, unknown> = {};
@@ -101,6 +102,14 @@ export async function PATCH(request: Request) {
       updateData.role = role;
     }
 
+    // Handle isAllowlisted update
+    if (isAllowlisted !== undefined) {
+      if (typeof isAllowlisted !== 'boolean') {
+        return NextResponse.json({ error: 'isAllowlisted must be a boolean' }, { status: 400 });
+      }
+      updateData.isAllowlisted = isAllowlisted;
+    }
+
     // Handle dailyCreditLimit update
     if (dailyCreditLimit !== undefined) {
       if (dailyCreditLimit !== null && (typeof dailyCreditLimit !== 'number' || dailyCreditLimit < 0 || !Number.isInteger(dailyCreditLimit))) {
@@ -112,7 +121,7 @@ export async function PATCH(request: Request) {
     const updated = await prisma.user.update({
       where: { id: userId },
       data: updateData,
-      select: { id: true, role: true, email: true, dailyCreditLimit: true },
+      select: { id: true, role: true, email: true, isAllowlisted: true, dailyCreditLimit: true },
     });
 
     logger.info('admin.users.updated', {

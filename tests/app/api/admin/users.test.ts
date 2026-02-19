@@ -174,12 +174,38 @@ describe('PATCH /api/admin/users', () => {
     expect(res.status).toBe(400);
   });
 
-  it('rejects when neither role nor dailyCreditLimit provided', async () => {
+  it('rejects when no update fields provided', async () => {
     const req = new Request('http://localhost:3000/api/admin/users', {
       method: 'PATCH',
       body: JSON.stringify({ userId: 'u2' }),
     });
     const res = await PATCH(req);
     expect(res.status).toBe(400);
+  });
+
+  it('updates isAllowlisted to true', async () => {
+    mockUpdate.mockResolvedValue({ id: 'u2', role: 'USER', email: 'user@test.com', isAllowlisted: true, dailyCreditLimit: null } as never);
+
+    const req = new Request('http://localhost:3000/api/admin/users', {
+      method: 'PATCH',
+      body: JSON.stringify({ userId: 'u2', isAllowlisted: true }),
+    });
+    const res = await PATCH(req);
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.data.isAllowlisted).toBe(true);
+  });
+
+  it('updates isAllowlisted to false', async () => {
+    mockUpdate.mockResolvedValue({ id: 'u2', role: 'USER', email: 'user@test.com', isAllowlisted: false, dailyCreditLimit: null } as never);
+
+    const req = new Request('http://localhost:3000/api/admin/users', {
+      method: 'PATCH',
+      body: JSON.stringify({ userId: 'u2', isAllowlisted: false }),
+    });
+    const res = await PATCH(req);
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.data.isAllowlisted).toBe(false);
   });
 });
