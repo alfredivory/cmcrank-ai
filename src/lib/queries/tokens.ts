@@ -84,8 +84,9 @@ export async function getTokenList(params: TokenListParams): Promise<TokenListRe
     skip: offset,
   });
 
-  // If sorting by snapshot fields, we need to sort after fetching
-  const needsPostSort = ['price', 'marketCap', 'volume24h', 'rankChange7d', 'rankChange30d'].includes(sort);
+  // If sorting by snapshot-derived fields, we need to sort after fetching
+  // (Prisma can't orderBy nested relation fields directly)
+  const needsPostSort = ['rank', 'price', 'marketCap', 'volume24h', 'rankChange7d', 'rankChange30d'].includes(sort);
 
   const mappedTokens: TokenListItem[] = tokens.map((token) => {
     const latestSnap = token.snapshots.find(
@@ -121,7 +122,7 @@ export async function getTokenList(params: TokenListParams): Promise<TokenListRe
 
   // Post-sort for snapshot-derived fields
   if (needsPostSort) {
-    const sortKey = sort as keyof TokenListItem;
+    const sortKey = (sort === 'rank' ? 'currentRank' : sort) as keyof TokenListItem;
     mappedTokens.sort((a, b) => {
       const aVal = a[sortKey] ?? 0;
       const bVal = b[sortKey] ?? 0;
@@ -232,15 +233,11 @@ function buildOrderBy(
   order: string
 ): Prisma.TokenOrderByWithRelationInput | undefined {
   switch (sort) {
-    case 'rank':
-      // Sort by latest snapshot rank — we use name as proxy since
-      // Prisma can't orderBy related snapshot fields directly
-      // The actual rank sort happens via the snapshot join
-      return { snapshots: { _count: order as Prisma.SortOrder } };
     case 'name':
       return { name: order as Prisma.SortOrder };
     default:
-      // For snapshot-derived fields, sort in-memory after fetch
+      // Snapshot-derived fields (rank, price, marketCap, etc.)
+      // are sorted in-memory after fetch
       return undefined;
   }
 }
