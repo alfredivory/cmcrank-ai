@@ -98,15 +98,15 @@ export default async function TokenPage({ params, searchParams }: TokenPageProps
     initialCompareSnapshots = compareTokenDetails.map((ct, i) => [ct.id, compareSnaps[i]]);
   }
 
-  const researchItems = researchResult.items.map((item) => ({
-    id: item.id,
-    title: item.title,
-    dateRangeStart: item.dateRangeStart.toISOString().split('T')[0],
-    dateRangeEnd: item.dateRangeEnd.toISOString().split('T')[0],
-    status: item.status,
-    importanceScore: item.importanceScore,
-    createdAt: item.createdAt.toISOString(),
-  }));
+  const researchPeriods = researchResult.items
+    .filter(item => item.status === 'COMPLETE')
+    .map((item) => ({
+      id: item.id,
+      title: item.title,
+      dateRangeStart: item.dateRangeStart.toISOString().split('T')[0],
+      dateRangeEnd: item.dateRangeEnd.toISOString().split('T')[0],
+      importanceScore: item.importanceScore,
+    }));
 
   // Build mainToken from token detail
   const mainToken: TokenSearchResult = {
@@ -142,7 +142,7 @@ export default async function TokenPage({ params, searchParams }: TokenPageProps
           initialSnapshots={initialSnapshots}
           initialRange={isCustomRange ? 'custom' : initialRange}
           initialOverlay={initialOverlay}
-          researchItems={researchItems}
+          researchPeriods={researchPeriods}
           mainToken={mainToken}
           initialCompareTokens={initialCompareTokens}
           initialCompareSnapshots={initialCompareSnapshots}
