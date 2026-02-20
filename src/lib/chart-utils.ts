@@ -111,3 +111,81 @@ function findClosestDate(dates: string[], targetMs: number): string {
 
   return closest;
 }
+
+// ============================================================================
+// Compare Chart Utilities
+// ============================================================================
+
+import type { SnapshotDataPoint, CompareDataPoint } from '@/types/api';
+
+export const COMPARE_COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6'] as const;
+
+/**
+ * Merge multiple tokens' snapshot arrays into a single array indexed by date.
+ * Each row contains `{ date, rank_<tokenId>: number | null }`.
+ * Tokens with different date ranges produce nulls for missing dates.
+ */
+export function mergeSnapshotsForCompare(
+  tokenSnapshots: { tokenId: string; snapshots: SnapshotDataPoint[] }[],
+): CompareDataPoint[] {
+  const dateSet = new Set<string>();
+  const snapshotMap = new Map<string, Map<string, number>>();
+
+  for (const { tokenId, snapshots } of tokenSnapshots) {
+    const byDate = new Map<string, number>();
+    for (const snap of snapshots) {
+      dateSet.add(snap.date);
+      byDate.set(snap.date, snap.rank);
+    }
+    snapshotMap.set(tokenId, byDate);
+  }
+
+  const sortedDates = Array.from(dateSet).sort();
+
+  return sortedDates.map((date) => {
+    const point: CompareDataPoint = { date };
+    for (const { tokenId } of tokenSnapshots) {
+      const byDate = snapshotMap.get(tokenId);
+      point[`rank_${tokenId}`] = byDate?.get(date) ?? null;
+    }
+    return point;
+  });
+}
+
+/**
+ * Normalize rank data so each token starts at 0.
+ * Negative delta = rank improved (rank number decreased).
+ * Positive delta = rank worsened (rank number increased).
+ */
+export function normalizeRankData(
+  data: CompareDataPoint[],
+  tokenIds: string[],
+): CompareDataPoint[] {
+  const firstValues = new Map<string, number>();
+
+  for (const tokenId of tokenIds) {
+    const key = `rank_${tokenId}`;
+    for (const point of data) {
+      const val = point[key];
+      if (typeof val === 'number') {
+        firstValues.set(tokenId, val);
+        break;
+      }
+    }
+  }
+
+  return data.map((point) => {
+    const normalized: CompareDataPoint = { date: point.date };
+    for (const tokenId of tokenIds) {
+      const key = `rank_${tokenId}`;
+      const val = point[key];
+      const base = firstValues.get(tokenId);
+      if (typeof val === 'number' && base !== undefined) {
+        normalized[key] = val - base;
+      } else {
+        normalized[key] = null;
+      }
+    }
+    return normalized;
+  });
+}
