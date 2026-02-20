@@ -77,7 +77,6 @@ export default function RankChart({
   const [isSelecting, setIsSelecting] = useState(false);
   const [hoveredResearch, setHoveredResearch] = useState<(ResearchPeriod & { movement: RankMovement }) | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
-  const [hoveredData, setHoveredData] = useState<SnapshotDataPoint | null>(null);
 
   const snapshotDates = useMemo(() => snapshots.map(s => s.date), [snapshots]);
 
@@ -132,12 +131,7 @@ export default function RankChart({
     }
   }, []);
 
-  const handleMouseMove = useCallback((e: { activeLabel?: string | number; activeCoordinate?: { x: number; y: number }; activePayload?: Array<{ payload: SnapshotDataPoint }> }) => {
-    if (e?.activePayload?.[0]) {
-      setHoveredData(e.activePayload[0].payload);
-    } else {
-      setHoveredData(null);
-    }
+  const handleMouseMove = useCallback((e: { activeLabel?: string | number; activeCoordinate?: { x: number; y: number } }) => {
     if (isSelecting && e?.activeLabel != null) {
       setSelectionEnd(String(e.activeLabel));
     }
@@ -173,7 +167,6 @@ export default function RankChart({
   }, [isSelecting, selectionStart, selectionEnd, onRangeSelect, visibleResearchBands, router]);
 
   const handleMouseLeave = useCallback(() => {
-    setHoveredData(null);
     setHoveredResearch(null);
   }, []);
 
@@ -202,7 +195,6 @@ export default function RankChart({
       </div>
 
       <div className={`relative transition-opacity duration-200 ${loading ? 'opacity-50' : 'opacity-100'}`}>
-        <ChartTooltip data={hoveredData} />
         {snapshots.length === 0 ? (
           <div className="flex items-center justify-center h-80 text-gray-500">
             No data available for this range
@@ -219,7 +211,12 @@ export default function RankChart({
               style={{ cursor: chartCursor }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <Tooltip content={() => null} isAnimationActive={false} />
+              <Tooltip
+                content={<ChartTooltip />}
+                position={{ x: 10, y: 10 }}
+                isAnimationActive={false}
+                cursor={{ stroke: '#6b7280', strokeDasharray: '3 3' }}
+              />
               <XAxis
                 dataKey="date"
                 stroke="#9ca3af"
