@@ -56,6 +56,7 @@ COPY --from=builder /app/node_modules/unicode-trie ./node_modules/unicode-trie
 COPY --from=builder /app/node_modules/base64-js ./node_modules/base64-js
 COPY --from=builder /app/node_modules/pako ./node_modules/pako
 COPY --from=builder /app/node_modules/@swc/helpers ./node_modules/@swc/helpers
+COPY --from=builder /app/node_modules/tslib ./node_modules/tslib
 
 USER nextjs
 
