@@ -110,6 +110,13 @@ export default function RankChart({
   const [range, setRange] = useState<SnapshotTimeRange | 'custom'>(initialRange);
   const [activeOverlay, setActiveOverlay] = useState<ChartOverlay>(initialOverlay);
   const [loading, setLoading] = useState(false);
+
+  // Sync state when initial props change (e.g. browser back navigation)
+  useEffect(() => {
+    setSnapshots(initialSnapshots);
+    setRange(initialRange);
+    setActiveOverlay(initialOverlay);
+  }, [initialSnapshots, initialRange, initialOverlay]);
   const [selectionStart, setSelectionStart] = useState<string | null>(null);
   const [selectionEnd, setSelectionEnd] = useState<string | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);

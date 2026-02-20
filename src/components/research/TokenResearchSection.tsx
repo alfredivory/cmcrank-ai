@@ -3,7 +3,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import RankChart from '@/components/charts/RankChart';
 import ResearchTrigger from './ResearchTrigger';
-import ResearchProgress from './ResearchProgress';
 import type { SnapshotDataPoint, SnapshotTimeRange, ChartOverlay, TokenSearchResult } from '@/types/api';
 import type { ResearchPeriod } from '@/components/charts/ResearchBandTooltip';
 
@@ -34,7 +33,6 @@ export default function TokenResearchSection({
 }: TokenResearchSectionProps) {
   const [selectedStart, setSelectedStart] = useState<string | undefined>();
   const [selectedEnd, setSelectedEnd] = useState<string | undefined>();
-  const [activeResearchId, setActiveResearchId] = useState<string | null>(null);
 
   const handleRangeSelect = (start: string, end: string) => {
     setSelectedStart(start);
@@ -46,8 +44,8 @@ export default function TokenResearchSection({
     setSelectedEnd(undefined);
   }, []);
 
-  const handleResearchStarted = useCallback((researchId: string) => {
-    setActiveResearchId(researchId);
+  const handleResearchStarted = useCallback(() => {
+    // Research tracking is handled by ResearchStatusProvider (toast notification)
   }, []);
 
   const compareTokenNames = useMemo(
@@ -77,15 +75,6 @@ export default function TokenResearchSection({
           initialCompareSnapshots={initialCompareSnapshots}
         />
       </div>
-
-      {/* Inline research progress (shown after trigger succeeds) */}
-      {activeResearchId && (
-        <div className="mt-3">
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
-            <ResearchProgress researchId={activeResearchId} />
-          </div>
-        </div>
-      )}
 
       {/* Research Trigger Modal */}
       <ResearchTrigger
