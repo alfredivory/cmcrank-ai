@@ -8,9 +8,10 @@ interface TokenSearchInputProps {
   excludeIds: Set<string>;
   onSelect: (token: TokenListItem) => void;
   disabled?: boolean;
+  autoFocus?: boolean;
 }
 
-export default function TokenSearchInput({ excludeIds, onSelect, disabled }: TokenSearchInputProps) {
+export default function TokenSearchInput({ excludeIds, onSelect, disabled, autoFocus }: TokenSearchInputProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<TokenListItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -108,6 +109,7 @@ export default function TokenSearchInput({ excludeIds, onSelect, disabled }: Tok
         onFocus={() => { if (results.length > 0) setIsOpen(true); }}
         placeholder="Search tokens to compare..."
         disabled={disabled}
+        autoFocus={autoFocus}
         className="w-full bg-gray-700 text-white text-sm rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 focus:outline-none disabled:opacity-50"
         aria-label="Search tokens"
       />

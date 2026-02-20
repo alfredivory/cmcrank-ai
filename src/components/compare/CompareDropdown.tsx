@@ -69,6 +69,7 @@ export default function CompareDropdown({
             excludeIds={excludeIds}
             onSelect={onAddToken}
             disabled={compareTokens.length >= 4}
+            autoFocus
           />
 
           <div className="mt-3">
