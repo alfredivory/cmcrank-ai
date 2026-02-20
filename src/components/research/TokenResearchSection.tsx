@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import RankChart from '@/components/charts/RankChart';
 import ResearchTrigger from './ResearchTrigger';
-import ResearchList from './ResearchList';
-import type { SnapshotDataPoint, SnapshotTimeRange, ChartOverlay, ResearchListItem, TokenSearchResult } from '@/types/api';
+import type { SnapshotDataPoint, SnapshotTimeRange, ChartOverlay, TokenSearchResult } from '@/types/api';
+import type { ResearchPeriod } from '@/components/charts/ResearchBandTooltip';
 
 interface TokenResearchSectionProps {
   tokenId: string;
@@ -13,7 +13,7 @@ interface TokenResearchSectionProps {
   initialSnapshots: SnapshotDataPoint[];
   initialRange: SnapshotTimeRange | 'custom';
   initialOverlay?: ChartOverlay;
-  researchItems: ResearchListItem[];
+  researchPeriods: ResearchPeriod[];
   mainToken: TokenSearchResult;
   initialCompareTokens?: TokenSearchResult[];
   initialCompareSnapshots?: [string, SnapshotDataPoint[]][];
@@ -26,7 +26,7 @@ export default function TokenResearchSection({
   initialSnapshots,
   initialRange,
   initialOverlay,
-  researchItems,
+  researchPeriods,
   mainToken,
   initialCompareTokens,
   initialCompareSnapshots,
@@ -39,20 +39,15 @@ export default function TokenResearchSection({
     setSelectedEnd(end);
   };
 
-  const researchPeriods = useMemo(
-    () => researchItems
-      .filter(item => item.status === 'COMPLETE')
-      .map(item => ({
-        id: item.id,
-        title: item.title,
-        dateRangeStart: item.dateRangeStart,
-        dateRangeEnd: item.dateRangeEnd,
-        importanceScore: item.importanceScore,
-      })),
-    [researchItems]
-  );
+  const handleClose = useCallback(() => {
+    setSelectedStart(undefined);
+    setSelectedEnd(undefined);
+  }, []);
 
-  // Compare token names for research hint (derived from initialCompareTokens)
+  const handleResearchStarted = useCallback(() => {
+    // Research tracking is handled by ResearchStatusProvider (toast notification)
+  }, []);
+
   const compareTokenNames = useMemo(
     () => (initialCompareTokens ?? []).map(t => t.name),
     [initialCompareTokens]
@@ -60,8 +55,13 @@ export default function TokenResearchSection({
 
   return (
     <>
+      {/* Subtle research hint */}
+      <p className="text-xs text-gray-600 mt-4 mb-1">
+        Select a period on the chart to start AI-powered research
+      </p>
+
       {/* Rank Chart */}
-      <div className="mt-6">
+      <div>
         <RankChart
           tokenId={tokenId}
           slug={slug}
@@ -76,22 +76,17 @@ export default function TokenResearchSection({
         />
       </div>
 
-      {/* Research Trigger */}
-      <div className="mt-4">
-        <ResearchTrigger
-          tokenId={tokenId}
-          slug={slug}
-          tokenName={tokenName}
-          selectedStart={selectedStart}
-          selectedEnd={selectedEnd}
-          compareTokenNames={compareTokenNames}
-        />
-      </div>
-
-      {/* Research List */}
-      <div className="mt-4">
-        <ResearchList items={researchItems} />
-      </div>
+      {/* Research Trigger Modal */}
+      <ResearchTrigger
+        tokenId={tokenId}
+        slug={slug}
+        tokenName={tokenName}
+        selectedStart={selectedStart}
+        selectedEnd={selectedEnd}
+        compareTokenNames={compareTokenNames}
+        onClose={handleClose}
+        onResearchStarted={handleResearchStarted}
+      />
     </>
   );
 }
