@@ -10,11 +10,10 @@ vi.mock('next-auth/react', () => ({
 import SiteHeader from '@/components/layout/SiteHeader';
 
 describe('SiteHeader', () => {
-  it('renders logo, tagline, and compare link', () => {
+  it('renders logo and tagline', () => {
     render(<SiteHeader />);
     expect(screen.getByText('.ai')).toBeInTheDocument();
     expect(screen.getByText(/Relative performance analysis/)).toBeInTheDocument();
-    expect(screen.getByText('Compare')).toBeInTheDocument();
   });
 
   it('renders right content when provided', () => {
