@@ -49,7 +49,7 @@ export default function ResearchDocument({ research, movement }: ResearchDocumen
     <div className="max-w-4xl mx-auto space-y-6 relative">
       <button
         onClick={() => router.back()}
-        className="absolute right-full top-0 mr-3 text-gray-400 hover:text-blue-400 transition-colors whitespace-nowrap text-sm hidden lg:block"
+        className="absolute right-full top-0 mr-6 text-gray-400 hover:text-blue-400 transition-colors whitespace-nowrap text-sm hidden lg:block"
         aria-label="Go back"
       >
         &larr; Back
