@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import RankChart from '@/components/charts/RankChart';
 import ResearchTrigger from './ResearchTrigger';
-import ResearchList from './ResearchList';
-import type { SnapshotDataPoint, SnapshotTimeRange, ChartOverlay, ResearchListItem, TokenSearchResult } from '@/types/api';
+import ResearchProgress from './ResearchProgress';
+import type { SnapshotDataPoint, SnapshotTimeRange, ChartOverlay, TokenSearchResult } from '@/types/api';
+import type { ResearchPeriod } from '@/components/charts/ResearchBandTooltip';
 
 interface TokenResearchSectionProps {
   tokenId: string;
@@ -13,7 +14,7 @@ interface TokenResearchSectionProps {
   initialSnapshots: SnapshotDataPoint[];
   initialRange: SnapshotTimeRange | 'custom';
   initialOverlay?: ChartOverlay;
-  researchItems: ResearchListItem[];
+  researchPeriods: ResearchPeriod[];
   mainToken: TokenSearchResult;
   initialCompareTokens?: TokenSearchResult[];
   initialCompareSnapshots?: [string, SnapshotDataPoint[]][];
@@ -26,33 +27,29 @@ export default function TokenResearchSection({
   initialSnapshots,
   initialRange,
   initialOverlay,
-  researchItems,
+  researchPeriods,
   mainToken,
   initialCompareTokens,
   initialCompareSnapshots,
 }: TokenResearchSectionProps) {
   const [selectedStart, setSelectedStart] = useState<string | undefined>();
   const [selectedEnd, setSelectedEnd] = useState<string | undefined>();
+  const [activeResearchId, setActiveResearchId] = useState<string | null>(null);
 
   const handleRangeSelect = (start: string, end: string) => {
     setSelectedStart(start);
     setSelectedEnd(end);
   };
 
-  const researchPeriods = useMemo(
-    () => researchItems
-      .filter(item => item.status === 'COMPLETE')
-      .map(item => ({
-        id: item.id,
-        title: item.title,
-        dateRangeStart: item.dateRangeStart,
-        dateRangeEnd: item.dateRangeEnd,
-        importanceScore: item.importanceScore,
-      })),
-    [researchItems]
-  );
+  const handleClose = useCallback(() => {
+    setSelectedStart(undefined);
+    setSelectedEnd(undefined);
+  }, []);
 
-  // Compare token names for research hint (derived from initialCompareTokens)
+  const handleResearchStarted = useCallback((researchId: string) => {
+    setActiveResearchId(researchId);
+  }, []);
+
   const compareTokenNames = useMemo(
     () => (initialCompareTokens ?? []).map(t => t.name),
     [initialCompareTokens]
@@ -60,8 +57,13 @@ export default function TokenResearchSection({
 
   return (
     <>
+      {/* Subtle research hint */}
+      <p className="text-xs text-gray-600 mt-4 mb-1">
+        Select a period on the chart to start AI-powered research
+      </p>
+
       {/* Rank Chart */}
-      <div className="mt-6">
+      <div>
         <RankChart
           tokenId={tokenId}
           slug={slug}
@@ -76,22 +78,26 @@ export default function TokenResearchSection({
         />
       </div>
 
-      {/* Research Trigger */}
-      <div className="mt-4">
-        <ResearchTrigger
-          tokenId={tokenId}
-          slug={slug}
-          tokenName={tokenName}
-          selectedStart={selectedStart}
-          selectedEnd={selectedEnd}
-          compareTokenNames={compareTokenNames}
-        />
-      </div>
+      {/* Inline research progress (shown after trigger succeeds) */}
+      {activeResearchId && (
+        <div className="mt-3">
+          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+            <ResearchProgress researchId={activeResearchId} />
+          </div>
+        </div>
+      )}
 
-      {/* Research List */}
-      <div className="mt-4">
-        <ResearchList items={researchItems} />
-      </div>
+      {/* Research Trigger Modal */}
+      <ResearchTrigger
+        tokenId={tokenId}
+        slug={slug}
+        tokenName={tokenName}
+        selectedStart={selectedStart}
+        selectedEnd={selectedEnd}
+        compareTokenNames={compareTokenNames}
+        onClose={handleClose}
+        onResearchStarted={handleResearchStarted}
+      />
     </>
   );
 }
