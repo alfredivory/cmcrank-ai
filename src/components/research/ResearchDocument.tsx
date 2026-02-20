@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { ResearchDetail } from '@/types/api';
 import type { RankMovement } from '@/lib/chart-utils';
 
@@ -31,6 +32,7 @@ function getImportanceColor(score: number): string {
 }
 
 export default function ResearchDocument({ research, movement }: ResearchDocumentProps) {
+  const router = useRouter();
   const content = research.content as ResearchContent | null;
   const accent = movement ? MOVEMENT_ACCENT[movement] : null;
   const [copied, setCopied] = useState(false);
@@ -46,7 +48,15 @@ export default function ResearchDocument({ research, movement }: ResearchDocumen
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className={`bg-gray-800/50 border border-gray-700 rounded-xl p-6${accent ? ` border-l-4 ${accent.border}` : ''}`}>
+      <div className="flex items-start gap-3">
+        <button
+          onClick={() => router.back()}
+          className="mt-6 text-gray-400 hover:text-blue-400 transition-colors text-lg leading-none shrink-0"
+          aria-label="Go back"
+        >
+          &larr;
+        </button>
+        <div className={`flex-1 bg-gray-800/50 border border-gray-700 rounded-xl p-6${accent ? ` border-l-4 ${accent.border}` : ''}`}>
         <div className="flex items-center gap-3 mb-3">
           {research.token.logoUrl && (
             <Image
@@ -99,6 +109,7 @@ export default function ResearchDocument({ research, movement }: ResearchDocumen
             </button>
           </div>
         )}
+        </div>
       </div>
 
       {/* Content */}
