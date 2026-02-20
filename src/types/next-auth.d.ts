@@ -11,6 +11,7 @@ declare module 'next-auth' {
       role: UserRole;
       isAllowlisted: boolean;
       creditsRemaining: number;
+      dailyCreditLimit: number;
     };
   }
 

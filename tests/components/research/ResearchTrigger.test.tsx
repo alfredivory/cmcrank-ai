@@ -5,7 +5,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 vi.mock('next-auth/react', () => ({
   useSession: () => ({
     data: {
-      user: { id: 'user1', isAllowlisted: true, role: 'USER', creditsRemaining: 5 },
+      user: { id: 'user1', isAllowlisted: true, role: 'USER', creditsRemaining: 5, dailyCreditLimit: 10 },
     },
     status: 'authenticated',
   }),

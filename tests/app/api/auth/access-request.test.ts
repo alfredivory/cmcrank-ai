@@ -35,6 +35,7 @@ const authUser = {
   role: 'USER' as const,
   isAllowlisted: false,
   creditsRemaining: 0,
+  dailyCreditLimit: 5,
 };
 
 describe('POST /api/auth/access-request', () => {

@@ -57,7 +57,8 @@ export async function requireAdminDual(
       image: null,
       role: 'ADMIN',
       isAllowlisted: true,
-      creditsRemaining: 0,
+      creditsRemaining: -1,
+      dailyCreditLimit: -1,
     };
   }
 

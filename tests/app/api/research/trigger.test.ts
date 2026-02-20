@@ -55,7 +55,7 @@ import { POST } from '@/app/api/research/trigger/route';
 
 const allowlistedUser = {
   id: 'user1', role: 'USER', isAllowlisted: true,
-  name: 'Test', email: 'test@test.com', image: null, creditsRemaining: 5,
+  name: 'Test', email: 'test@test.com', image: null, creditsRemaining: 5, dailyCreditLimit: 10,
 };
 
 function makeReq(body: Record<string, unknown>) {

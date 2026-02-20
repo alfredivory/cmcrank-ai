@@ -6,7 +6,7 @@ import type { Adapter } from 'next-auth/adapters';
 import { prisma } from '@/lib/db';
 import { createLogger } from '@/lib/logger';
 import { isEmailAllowlisted } from './allowlist';
-import { getCreditsRemaining } from './credits';
+import { getCreditsRemaining, getEffectiveLimit } from './credits';
 
 const logger = createLogger('api');
 
@@ -63,11 +63,13 @@ export const authOptions: NextAuthOptions = {
       }
 
       const creditsRemaining = await getCreditsRemaining(user.id);
+      const effectiveLimit = getEffectiveLimit(user);
 
       session.user.id = user.id;
       session.user.role = user.role;
       session.user.isAllowlisted = user.isAllowlisted;
       session.user.creditsRemaining = creditsRemaining;
+      session.user.dailyCreditLimit = effectiveLimit;
 
       return session;
     },

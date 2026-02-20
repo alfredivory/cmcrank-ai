@@ -41,6 +41,7 @@ describe('UserMenu', () => {
           role: 'USER',
           isAllowlisted: false,
           creditsRemaining: 5,
+          dailyCreditLimit: 10,
         },
       },
       status: 'authenticated',
@@ -60,6 +61,7 @@ describe('UserMenu', () => {
           role: 'USER',
           isAllowlisted: false,
           creditsRemaining: 5,
+          dailyCreditLimit: 10,
         },
       },
       status: 'authenticated',
@@ -72,6 +74,49 @@ describe('UserMenu', () => {
     expect(screen.getByText('USER')).toBeInTheDocument();
   });
 
+  it('shows credit count in N/M format for allowlisted user', () => {
+    mockUseSession.mockReturnValue({
+      data: {
+        user: {
+          id: 'user-1',
+          name: 'Test',
+          email: 'test@test.com',
+          image: null,
+          role: 'USER',
+          isAllowlisted: true,
+          creditsRemaining: 3,
+          dailyCreditLimit: 10,
+        },
+      },
+      status: 'authenticated',
+    });
+    render(<UserMenu />);
+    fireEvent.click(screen.getByLabelText('User menu'));
+    expect(screen.getByText('3/10 credits')).toBeInTheDocument();
+  });
+
+  it('shows red text when 0 credits in dropdown', () => {
+    mockUseSession.mockReturnValue({
+      data: {
+        user: {
+          id: 'user-1',
+          name: 'Test',
+          email: 'test@test.com',
+          image: null,
+          role: 'USER',
+          isAllowlisted: true,
+          creditsRemaining: 0,
+          dailyCreditLimit: 5,
+        },
+      },
+      status: 'authenticated',
+    });
+    render(<UserMenu />);
+    fireEvent.click(screen.getByLabelText('User menu'));
+    const creditEl = screen.getByText('0/5 credits');
+    expect(creditEl.className).toContain('text-red-400');
+  });
+
   it('shows Admin Panel link for admin users', () => {
     mockUseSession.mockReturnValue({
       data: {
@@ -82,7 +127,8 @@ describe('UserMenu', () => {
           image: null,
           role: 'ADMIN',
           isAllowlisted: true,
-          creditsRemaining: 5,
+          creditsRemaining: -1,
+          dailyCreditLimit: -1,
         },
       },
       status: 'authenticated',
@@ -103,6 +149,7 @@ describe('UserMenu', () => {
           role: 'USER',
           isAllowlisted: false,
           creditsRemaining: 5,
+          dailyCreditLimit: 10,
         },
       },
       status: 'authenticated',

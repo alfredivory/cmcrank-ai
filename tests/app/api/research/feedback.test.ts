@@ -37,7 +37,7 @@ import { POST, GET } from '@/app/api/research/[id]/feedback/route';
 
 const authUser = {
   id: 'user1', role: 'USER', isAllowlisted: true,
-  name: 'Test', email: 'test@test.com', image: null, creditsRemaining: 5,
+  name: 'Test', email: 'test@test.com', image: null, creditsRemaining: 5, dailyCreditLimit: 10,
 };
 
 function makePostReq(body: Record<string, unknown>) {

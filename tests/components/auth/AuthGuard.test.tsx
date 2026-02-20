@@ -26,7 +26,7 @@ describe('AuthGuard', () => {
   it('shows request access when authenticated but not allowlisted', () => {
     mockUseSession.mockReturnValue({
       data: {
-        user: { id: 'u1', role: 'USER', isAllowlisted: false, creditsRemaining: 0 },
+        user: { id: 'u1', role: 'USER', isAllowlisted: false, creditsRemaining: 0, dailyCreditLimit: 5 },
       },
       status: 'authenticated',
     });
@@ -38,7 +38,7 @@ describe('AuthGuard', () => {
   it('renders children when allowlisted', () => {
     mockUseSession.mockReturnValue({
       data: {
-        user: { id: 'u1', role: 'USER', isAllowlisted: true, creditsRemaining: 5 },
+        user: { id: 'u1', role: 'USER', isAllowlisted: true, creditsRemaining: 5, dailyCreditLimit: 10 },
       },
       status: 'authenticated',
     });
@@ -49,7 +49,7 @@ describe('AuthGuard', () => {
   it('renders children when requireAllowlist is false and authenticated', () => {
     mockUseSession.mockReturnValue({
       data: {
-        user: { id: 'u1', role: 'USER', isAllowlisted: false, creditsRemaining: 0 },
+        user: { id: 'u1', role: 'USER', isAllowlisted: false, creditsRemaining: 0, dailyCreditLimit: 5 },
       },
       status: 'authenticated',
     });

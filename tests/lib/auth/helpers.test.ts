@@ -23,6 +23,7 @@ function makeSession(overrides: Record<string, unknown> = {}) {
       role: 'USER' as const,
       isAllowlisted: false,
       creditsRemaining: 5,
+      dailyCreditLimit: 10,
       ...overrides,
     },
   };

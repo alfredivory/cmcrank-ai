@@ -73,10 +73,14 @@ export default function UserMenu() {
                 {user.role}
               </span>
               {(user.isAllowlisted || user.role === 'ADMIN') && (
-                <span className="text-xs text-green-400">
+                <span className={`text-xs ${
+                  user.creditsRemaining === -1 || user.creditsRemaining > 0
+                    ? 'text-green-400'
+                    : 'text-red-400'
+                }`}>
                   {user.creditsRemaining === -1
                     ? 'Unlimited'
-                    : `${user.creditsRemaining} credits`}
+                    : `${user.creditsRemaining}/${user.dailyCreditLimit} credits`}
                 </span>
               )}
             </div>
