@@ -8,6 +8,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   ReferenceArea,
 } from 'recharts';
@@ -218,6 +219,7 @@ export default function RankChart({
               style={{ cursor: chartCursor }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <Tooltip content={() => null} isAnimationActive={false} />
               <XAxis
                 dataKey="date"
                 stroke="#9ca3af"
