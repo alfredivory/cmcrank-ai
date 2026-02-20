@@ -19,6 +19,12 @@ export default function SiteHeader({ rightContent }: SiteHeaderProps) {
         </p>
       </div>
       <div className="mt-4 sm:mt-0 flex items-center gap-4">
+        <Link
+          href="/compare"
+          className="text-sm text-gray-300 hover:text-blue-400 transition-colors"
+        >
+          Compare
+        </Link>
         {rightContent}
         <UserMenu />
       </div>

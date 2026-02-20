@@ -144,6 +144,40 @@ export interface ResearchDetail {
   }[];
 }
 
+// ============================================================================
+// Compare API Types
+// ============================================================================
+
+export interface TokenSearchResult {
+  id: string;
+  name: string;
+  symbol: string;
+  slug: string;
+  logoUrl: string | null;
+  currentRank: number;
+}
+
+export interface CompareTokenData {
+  token: TokenSearchResult;
+  snapshots: SnapshotDataPoint[];
+}
+
+export interface CompareResponse {
+  data: {
+    tokens: CompareTokenData[];
+    range: SnapshotTimeRange | 'custom';
+  };
+}
+
+export interface CompareDataPoint {
+  date: string;
+  [key: string]: string | number | null;
+}
+
+// ============================================================================
+// Research API Types
+// ============================================================================
+
 export interface ResearchTriggerResponse {
   data: {
     researchId: string;

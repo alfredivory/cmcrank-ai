@@ -6,6 +6,7 @@ import type {
   Pagination,
   CategoryItem,
   TokenDetailExtended,
+  TokenSearchResult,
   SnapshotDataPoint,
   SnapshotTimeRange,
 } from '@/types/api';
@@ -269,6 +270,45 @@ export async function getTokenDetailBySlug(slug: string): Promise<TokenDetailExt
     rankChange90d: snap90d ? snap90d.rank - currentRank : null,
     categories: Array.isArray(token.categories) ? (token.categories as string[]) : [],
   };
+}
+
+/**
+ * Get multiple tokens by their slugs. Returns only tracked tokens.
+ */
+export async function getTokensBySlugs(slugs: string[]): Promise<TokenSearchResult[]> {
+  if (slugs.length === 0) return [];
+
+  const latestSnapshot = await prisma.dailySnapshot.findFirst({
+    orderBy: { date: 'desc' },
+    select: { date: true },
+  });
+
+  if (!latestSnapshot) return [];
+
+  const latestDate = latestSnapshot.date;
+
+  const tokens = await prisma.token.findMany({
+    where: {
+      slug: { in: slugs },
+      isTracked: true,
+    },
+    include: {
+      snapshots: {
+        where: { date: latestDate },
+        select: { rank: true },
+        take: 1,
+      },
+    },
+  });
+
+  return tokens.map((token) => ({
+    id: token.id,
+    name: token.name,
+    symbol: token.symbol,
+    slug: token.slug,
+    logoUrl: resolveLogoUrl(token.logoUrl, token.cmcId),
+    currentRank: token.snapshots[0]?.rank ?? 0,
+  }));
 }
 
 function getRangeStartDate(latestDate: Date, range: SnapshotTimeRange): Date | null {
