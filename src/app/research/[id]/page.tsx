@@ -4,7 +4,6 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import SiteHeader from '@/components/layout/SiteHeader';
 import SiteFooter from '@/components/layout/SiteFooter';
-import BackButton from '@/components/layout/BackButton';
 import ResearchDocument from '@/components/research/ResearchDocument';
 import ResearchFeedback from '@/components/research/ResearchFeedback';
 import { getResearchById } from '@/lib/queries/research';
@@ -85,8 +84,6 @@ export default async function ResearchPage({ params }: ResearchPageProps) {
     <main className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
       <div className="container mx-auto px-4 py-8">
         <SiteHeader />
-
-        <BackButton />
 
         <ResearchDocument research={serializedResearch} movement={movement} />
 
