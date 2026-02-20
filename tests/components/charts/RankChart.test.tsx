@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import RankChart from '@/components/charts/RankChart';
-import type { SnapshotDataPoint } from '@/types/api';
+import type { SnapshotDataPoint, TokenSearchResult } from '@/types/api';
 import type { ResearchPeriod } from '@/components/charts/ResearchBandTooltip';
 
 const mockPush = vi.fn();
@@ -20,10 +20,24 @@ vi.mock('recharts', async (importOriginal) => {
   };
 });
 
+// Mock TokenSearchInput to avoid fetch calls from CompareDropdown
+vi.mock('@/components/compare/TokenSearchInput', () => ({
+  default: () => <div data-testid="token-search-input" />,
+}));
+
 const mockSnapshots: SnapshotDataPoint[] = [
   { date: '2026-01-19', rank: 2, marketCap: 900e9, price: 45000, volume24h: 25e9, circulatingSupply: 19000000 },
   { date: '2026-02-18', rank: 1, marketCap: 1e12, price: 50000, volume24h: 30e9, circulatingSupply: 19000000 },
 ];
+
+const mainToken: TokenSearchResult = {
+  id: 'token-1',
+  name: 'Bitcoin',
+  symbol: 'BTC',
+  slug: 'bitcoin',
+  logoUrl: null,
+  currentRank: 1,
+};
 
 describe('RankChart', () => {
   beforeEach(() => {
@@ -39,6 +53,7 @@ describe('RankChart', () => {
         slug="bitcoin"
         initialSnapshots={mockSnapshots}
         initialRange="30d"
+        mainToken={mainToken}
       />
     );
 
@@ -53,6 +68,20 @@ describe('RankChart', () => {
     expect(screen.getByText('Price')).toBeInTheDocument();
   });
 
+  it('renders Compare button', () => {
+    render(
+      <RankChart
+        tokenId="token-1"
+        slug="bitcoin"
+        initialSnapshots={mockSnapshots}
+        initialRange="30d"
+        mainToken={mainToken}
+      />
+    );
+
+    expect(screen.getByText('Compare')).toBeInTheDocument();
+  });
+
   it('shows empty state when no snapshots', () => {
     render(
       <RankChart
@@ -60,6 +89,7 @@ describe('RankChart', () => {
         slug="bitcoin"
         initialSnapshots={[]}
         initialRange="30d"
+        mainToken={mainToken}
       />
     );
 
@@ -84,6 +114,7 @@ describe('RankChart', () => {
         slug="bitcoin"
         initialSnapshots={mockSnapshots}
         initialRange="30d"
+        mainToken={mainToken}
       />
     );
 
@@ -104,6 +135,7 @@ describe('RankChart', () => {
         slug="bitcoin"
         initialSnapshots={mockSnapshots}
         initialRange="30d"
+        mainToken={mainToken}
       />
     );
 
@@ -123,6 +155,7 @@ describe('RankChart', () => {
         slug="bitcoin"
         initialSnapshots={mockSnapshots}
         initialRange="30d"
+        mainToken={mainToken}
       />
     );
 
@@ -148,6 +181,7 @@ describe('RankChart', () => {
         slug="bitcoin"
         initialSnapshots={mockSnapshots}
         initialRange="30d"
+        mainToken={mainToken}
       />
     );
 
@@ -168,6 +202,7 @@ describe('RankChart', () => {
         slug="bitcoin"
         initialSnapshots={mockSnapshots}
         initialRange="30d"
+        mainToken={mainToken}
       />
     );
 
@@ -197,6 +232,7 @@ describe('RankChart', () => {
         slug="bitcoin"
         initialSnapshots={mockSnapshots}
         initialRange="custom"
+        mainToken={mainToken}
       />
     );
 
@@ -219,6 +255,7 @@ describe('RankChart', () => {
         initialSnapshots={mockSnapshots}
         initialRange="30d"
         initialOverlay="price"
+        mainToken={mainToken}
       />
     );
 
@@ -244,6 +281,7 @@ describe('RankChart', () => {
         initialSnapshots={mockSnapshots}
         initialRange="30d"
         researchPeriods={periods}
+        mainToken={mainToken}
       />
     );
 
@@ -259,6 +297,7 @@ describe('RankChart', () => {
         slug="bitcoin"
         initialSnapshots={mockSnapshots}
         initialRange="30d"
+        mainToken={mainToken}
       />
     );
 
@@ -284,6 +323,7 @@ describe('RankChart', () => {
         initialSnapshots={[]}
         initialRange="30d"
         researchPeriods={periods}
+        mainToken={mainToken}
       />
     );
 

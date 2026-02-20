@@ -12,6 +12,7 @@ interface ResearchTriggerProps {
   tokenName: string;
   selectedStart?: string;
   selectedEnd?: string;
+  compareTokenNames?: string[];
 }
 
 const MAX_CONTEXT_LENGTH = 2000;
@@ -22,6 +23,7 @@ export default function ResearchTrigger({
   tokenName,
   selectedStart,
   selectedEnd,
+  compareTokenNames = [],
 }: ResearchTriggerProps) {
   const [userContext, setUserContext] = useState('');
   const [loading, setLoading] = useState(false);
@@ -49,6 +51,13 @@ export default function ResearchTrigger({
     setExistingId(null);
 
     try {
+      // Build user context with optional comparison hint
+      let finalContext = userContext.trim();
+      if (compareTokenNames.length > 0) {
+        const hint = `[Comparison context: The user is comparing ${tokenName} against ${compareTokenNames.join(', ')}. If relevant, briefly note how ${tokenName}'s performance relates to these tokens during this period, but keep the primary focus on ${tokenName}.]`;
+        finalContext = finalContext ? `${finalContext}\n\n${hint}` : hint;
+      }
+
       const response = await fetch('/api/research/trigger', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -56,7 +65,7 @@ export default function ResearchTrigger({
           tokenId,
           startDate: selectedStart,
           endDate: selectedEnd,
-          userContext: userContext.trim() || undefined,
+          userContext: finalContext || undefined,
           parentResearchId: forceNew ? existingId : undefined,
         }),
       });

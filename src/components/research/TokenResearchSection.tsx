@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import RankChart from '@/components/charts/RankChart';
 import ResearchTrigger from './ResearchTrigger';
 import ResearchList from './ResearchList';
-import type { SnapshotDataPoint, SnapshotTimeRange, ChartOverlay, ResearchListItem } from '@/types/api';
+import type { SnapshotDataPoint, SnapshotTimeRange, ChartOverlay, ResearchListItem, TokenSearchResult } from '@/types/api';
 
 interface TokenResearchSectionProps {
   tokenId: string;
@@ -14,6 +14,9 @@ interface TokenResearchSectionProps {
   initialRange: SnapshotTimeRange | 'custom';
   initialOverlay?: ChartOverlay;
   researchItems: ResearchListItem[];
+  mainToken: TokenSearchResult;
+  initialCompareTokens?: TokenSearchResult[];
+  initialCompareSnapshots?: [string, SnapshotDataPoint[]][];
 }
 
 export default function TokenResearchSection({
@@ -24,6 +27,9 @@ export default function TokenResearchSection({
   initialRange,
   initialOverlay,
   researchItems,
+  mainToken,
+  initialCompareTokens,
+  initialCompareSnapshots,
 }: TokenResearchSectionProps) {
   const [selectedStart, setSelectedStart] = useState<string | undefined>();
   const [selectedEnd, setSelectedEnd] = useState<string | undefined>();
@@ -46,6 +52,12 @@ export default function TokenResearchSection({
     [researchItems]
   );
 
+  // Compare token names for research hint (derived from initialCompareTokens)
+  const compareTokenNames = useMemo(
+    () => (initialCompareTokens ?? []).map(t => t.name),
+    [initialCompareTokens]
+  );
+
   return (
     <>
       {/* Rank Chart */}
@@ -58,6 +70,9 @@ export default function TokenResearchSection({
           initialOverlay={initialOverlay}
           onRangeSelect={handleRangeSelect}
           researchPeriods={researchPeriods}
+          mainToken={mainToken}
+          initialCompareTokens={initialCompareTokens}
+          initialCompareSnapshots={initialCompareSnapshots}
         />
       </div>
 
@@ -69,6 +84,7 @@ export default function TokenResearchSection({
           tokenName={tokenName}
           selectedStart={selectedStart}
           selectedEnd={selectedEnd}
+          compareTokenNames={compareTokenNames}
         />
       </div>
 
