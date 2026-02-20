@@ -213,9 +213,9 @@ export default function RankChart({
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
               <Tooltip
                 content={<ChartTooltip />}
-                position={{ x: 10, y: 10 }}
                 isAnimationActive={false}
                 cursor={{ stroke: '#6b7280', strokeDasharray: '3 3' }}
+                wrapperStyle={{ position: 'absolute', top: 5, right: 20, left: 'auto', pointerEvents: 'none' }}
               />
               <XAxis
                 dataKey="date"
