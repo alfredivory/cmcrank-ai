@@ -1,10 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ back: vi.fn() }),
-}));
-
 import ResearchDocument from '@/components/research/ResearchDocument';
 import type { ResearchDetail } from '@/types/api';
 
