@@ -26,6 +26,7 @@ describe('CompareLegend', () => {
         compareTokens={compareTokens}
         hiddenTokenIds={new Set()}
         onToggleVisibility={() => {}}
+        onRemoveToken={() => {}}
       />
     );
 
@@ -41,6 +42,7 @@ describe('CompareLegend', () => {
         compareTokens={compareTokens}
         hiddenTokenIds={new Set()}
         onToggleVisibility={() => {}}
+        onRemoveToken={() => {}}
       />
     );
 
@@ -59,6 +61,7 @@ describe('CompareLegend', () => {
         compareTokens={compareTokens}
         hiddenTokenIds={new Set()}
         onToggleVisibility={handleToggle}
+        onRemoveToken={() => {}}
       />
     );
 
@@ -68,6 +71,61 @@ describe('CompareLegend', () => {
     expect(handleToggle).toHaveBeenCalledWith('token-2');
   });
 
+  it('calls onRemoveToken when x button is clicked on comparison token', () => {
+    const handleRemove = vi.fn();
+
+    render(
+      <CompareLegend
+        mainToken={mainToken}
+        compareTokens={compareTokens}
+        hiddenTokenIds={new Set()}
+        onToggleVisibility={() => {}}
+        onRemoveToken={handleRemove}
+      />
+    );
+
+    fireEvent.click(screen.getByLabelText('Remove Ethereum'));
+
+    expect(handleRemove).toHaveBeenCalledTimes(1);
+    expect(handleRemove).toHaveBeenCalledWith('token-2');
+  });
+
+  it('does not show remove button on primary token', () => {
+    render(
+      <CompareLegend
+        mainToken={mainToken}
+        compareTokens={compareTokens}
+        hiddenTokenIds={new Set()}
+        onToggleVisibility={() => {}}
+        onRemoveToken={() => {}}
+      />
+    );
+
+    expect(screen.queryByLabelText('Remove Bitcoin')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Remove Ethereum')).toBeInTheDocument();
+    expect(screen.getByLabelText('Remove Solana')).toBeInTheDocument();
+  });
+
+  it('does not trigger onToggleVisibility when x button is clicked', () => {
+    const handleToggle = vi.fn();
+    const handleRemove = vi.fn();
+
+    render(
+      <CompareLegend
+        mainToken={mainToken}
+        compareTokens={compareTokens}
+        hiddenTokenIds={new Set()}
+        onToggleVisibility={handleToggle}
+        onRemoveToken={handleRemove}
+      />
+    );
+
+    fireEvent.click(screen.getByLabelText('Remove Solana'));
+
+    expect(handleRemove).toHaveBeenCalledTimes(1);
+    expect(handleToggle).not.toHaveBeenCalled();
+  });
+
   it('hidden tokens have reduced opacity', () => {
     render(
       <CompareLegend
@@ -75,6 +133,7 @@ describe('CompareLegend', () => {
         compareTokens={compareTokens}
         hiddenTokenIds={new Set(['token-2'])}
         onToggleVisibility={() => {}}
+        onRemoveToken={() => {}}
       />
     );
 
@@ -94,6 +153,7 @@ describe('CompareLegend', () => {
         compareTokens={compareTokens}
         hiddenTokenIds={new Set(['token-3'])}
         onToggleVisibility={() => {}}
+        onRemoveToken={() => {}}
       />
     );
 
@@ -115,6 +175,7 @@ describe('CompareLegend', () => {
         compareTokens={compareTokens}
         hiddenTokenIds={new Set()}
         onToggleVisibility={() => {}}
+        onRemoveToken={() => {}}
       />
     );
 
@@ -139,6 +200,7 @@ describe('CompareLegend', () => {
         compareTokens={compareTokens}
         hiddenTokenIds={new Set()}
         onToggleVisibility={() => {}}
+        onRemoveToken={() => {}}
       />
     );
 

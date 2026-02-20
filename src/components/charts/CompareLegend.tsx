@@ -8,6 +8,7 @@ interface CompareLegendProps {
   compareTokens: TokenSearchResult[];
   hiddenTokenIds: Set<string>;
   onToggleVisibility: (tokenId: string) => void;
+  onRemoveToken: (tokenId: string) => void;
 }
 
 export default function CompareLegend({
@@ -15,6 +16,7 @@ export default function CompareLegend({
   compareTokens,
   hiddenTokenIds,
   onToggleVisibility,
+  onRemoveToken,
 }: CompareLegendProps) {
   const allTokens = [mainToken, ...compareTokens];
 
@@ -46,6 +48,19 @@ export default function CompareLegend({
             </span>
             {isMain && (
               <span className="text-xs text-gray-500">(primary)</span>
+            )}
+            {!isMain && (
+              <span
+                role="button"
+                aria-label={`Remove ${token.name}`}
+                className="ml-1 text-gray-500 hover:text-red-400 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveToken(token.id);
+                }}
+              >
+                &times;
+              </span>
             )}
           </button>
         );

@@ -456,6 +456,7 @@ export default function RankChart({
           compareTokens={compare.compareTokens}
           hiddenTokenIds={compare.hiddenTokenIds}
           onToggleVisibility={compare.toggleVisibility}
+          onRemoveToken={compare.removeCompareToken}
         />
       )}
     </div>
