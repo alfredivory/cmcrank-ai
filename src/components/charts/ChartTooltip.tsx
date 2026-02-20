@@ -4,19 +4,16 @@ import { formatPrice, formatLargeNumber } from '@/lib/format';
 import type { SnapshotDataPoint } from '@/types/api';
 
 interface ChartTooltipProps {
-  active?: boolean;
-  payload?: Array<{ payload: SnapshotDataPoint }>;
+  data: SnapshotDataPoint | null;
 }
 
-export default function ChartTooltip({ active, payload }: ChartTooltipProps) {
-  if (!active || !payload?.[0]) {
+export default function ChartTooltip({ data }: ChartTooltipProps) {
+  if (!data) {
     return null;
   }
 
-  const data = payload[0].payload;
-
   return (
-    <div className="pointer-events-none bg-gray-900/80 backdrop-blur-sm border border-gray-600 rounded-lg p-2 shadow-lg text-xs">
+    <div className="absolute top-2 right-5 z-10 pointer-events-none bg-gray-900/80 backdrop-blur-sm border border-gray-600 rounded-lg p-2 shadow-lg text-xs">
       <div className="text-gray-400 mb-1 font-medium">{data.date}</div>
       <div className="space-y-0.5">
         <div className="flex justify-between gap-3">

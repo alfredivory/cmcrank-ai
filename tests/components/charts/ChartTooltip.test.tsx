@@ -13,8 +13,8 @@ const mockData: SnapshotDataPoint = {
 };
 
 describe('ChartTooltip', () => {
-  it('renders all fields when active with payload', () => {
-    render(<ChartTooltip active={true} payload={[{ payload: mockData }]} />);
+  it('renders all fields when data is provided', () => {
+    render(<ChartTooltip data={mockData} />);
 
     expect(screen.getByText('2026-02-18')).toBeInTheDocument();
     expect(screen.getByText('#1')).toBeInTheDocument();
@@ -24,14 +24,8 @@ describe('ChartTooltip', () => {
     expect(screen.getByText('19,000,000')).toBeInTheDocument();
   });
 
-  it('renders nothing when not active', () => {
-    const { container } = render(<ChartTooltip active={false} payload={[{ payload: mockData }]} />);
-
-    expect(container.innerHTML).toBe('');
-  });
-
-  it('renders nothing when payload is empty', () => {
-    const { container } = render(<ChartTooltip active={true} payload={[]} />);
+  it('renders nothing when data is null', () => {
+    const { container } = render(<ChartTooltip data={null} />);
 
     expect(container.innerHTML).toBe('');
   });

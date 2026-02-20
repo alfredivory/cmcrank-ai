@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   LineChart,
@@ -46,6 +46,19 @@ function formatYAxis(value: number, overlay: ChartOverlay): string {
   return formatLargeNumber(value);
 }
 
+/** Invisible component used as recharts Tooltip content to bridge active data to parent state. */
+function TooltipDataBridge({ active, payload, onData }: {
+  active?: boolean;
+  payload?: Array<{ payload: SnapshotDataPoint }>;
+  onData: (d: SnapshotDataPoint | null) => void;
+}) {
+  useEffect(() => {
+    onData(active && payload?.[0] ? payload[0].payload : null);
+  }, [active, payload, onData]);
+
+  return null;
+}
+
 function updateUrl(params: Record<string, string>) {
   const url = new URL(window.location.href);
   for (const [key, value] of Object.entries(params)) {
@@ -75,6 +88,7 @@ export default function RankChart({
   const [selectionStart, setSelectionStart] = useState<string | null>(null);
   const [selectionEnd, setSelectionEnd] = useState<string | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
+  const [hoveredData, setHoveredData] = useState<SnapshotDataPoint | null>(null);
   const [hoveredResearch, setHoveredResearch] = useState<(ResearchPeriod & { movement: RankMovement }) | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
 
@@ -212,10 +226,10 @@ export default function RankChart({
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
               <Tooltip
-                content={<ChartTooltip />}
+                content={<TooltipDataBridge onData={setHoveredData} />}
                 isAnimationActive={false}
                 cursor={{ stroke: '#6b7280', strokeDasharray: '3 3' }}
-                wrapperStyle={{ position: 'absolute', top: 5, right: 20, left: 'auto', pointerEvents: 'none' }}
+                wrapperStyle={{ visibility: 'hidden' }}
               />
               <XAxis
                 dataKey="date"
@@ -269,6 +283,7 @@ export default function RankChart({
             </LineChart>
           </ResponsiveContainer>
         )}
+        <ChartTooltip data={hoveredData} />
         {hoveredResearch && (
           <ResearchBandTooltip research={hoveredResearch} x={tooltipPos.x} y={tooltipPos.y} movement={hoveredResearch.movement} />
         )}
