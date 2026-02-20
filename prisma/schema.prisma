@@ -60,8 +60,9 @@ model User {
   events         Event[]
   contextNotes   ContextNote[]
   chatMessages   ChatMessage[]
-  accessRequests AccessRequest[]
-  watchlists     Watchlist[]
+  accessRequests     AccessRequest[]
+  watchlists         Watchlist[]
+  researchFeedback   ResearchFeedback[]
 }
 
 model VerificationToken {
@@ -204,10 +205,12 @@ model Research {
   dateRangeEnd     DateTime       @db.Date
   triggeredByUserId String?
   userContext      String?        @db.Text // User-provided guidance
+  title            String?        @db.VarChar(120)
   status           ResearchStatus @default(PENDING)
   content          Json?          // Structured research content
   renderedMarkdown String?        @db.Text
   importanceScore  Int            @default(50) // 0-100
+  isVisible        Boolean        @default(true)
   version          Int            @default(1)
   parentResearchId String?        // For re-researches
   createdAt        DateTime       @default(now())
@@ -219,10 +222,12 @@ model Research {
   childResearches Research[]   @relation("ResearchVersions")
   events         Event[]
   chatMessages   ChatMessage[]
+  feedback       ResearchFeedback[]
 
   @@index([tokenId, dateRangeStart, dateRangeEnd])
   @@index([status])
   @@index([importanceScore])
+  @@index([isVisible])
 }
 
 enum ResearchStatus {
@@ -230,6 +235,26 @@ enum ResearchStatus {
   RUNNING
   COMPLETE
   FAILED
+}
+
+model ResearchFeedback {
+  id         String         @id @default(cuid())
+  researchId String
+  userId     String
+  rating     FeedbackRating
+  comment    String?        @db.Text
+  createdAt  DateTime       @default(now())
+
+  research Research @relation(fields: [researchId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([researchId, userId])
+  @@index([researchId])
+}
+
+enum FeedbackRating {
+  THUMBS_UP
+  THUMBS_DOWN
 }
 
 // ============================================================================

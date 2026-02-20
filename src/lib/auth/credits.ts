@@ -33,7 +33,9 @@ export function getEffectiveLimit(user: {
 /**
  * Returns the number of credits remaining for a user today.
  * Returns -1 for unlimited (admins).
- * Auto-resets if 24h have passed since last reset.
+ * Read-only: does not write to DB. If 24h have passed since last reset,
+ * returns the full limit (virtual reset). Actual DB reset happens lazily
+ * inside consumeCredit.
  */
 export async function getCreditsRemaining(userId: string): Promise<number> {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
@@ -41,53 +43,55 @@ export async function getCreditsRemaining(userId: string): Promise<number> {
 
   if (limit === UNLIMITED_CREDITS) return UNLIMITED_CREDITS;
 
-  const now = new Date();
-  const resetAt = new Date(user.creditsResetAt);
-
-  if (now.getTime() - resetAt.getTime() >= TWENTY_FOUR_HOURS_MS) {
-    // Reset credits
-    await prisma.user.update({
-      where: { id: userId },
-      data: { researchCreditsUsed: 0, creditsResetAt: now },
-    });
-    return limit;
-  }
+  const elapsed = Date.now() - new Date(user.creditsResetAt).getTime();
+  if (elapsed >= TWENTY_FOUR_HOURS_MS) return limit; // window expired → full credits
 
   return Math.max(0, limit - user.researchCreditsUsed);
 }
 
 /**
- * Consumes one research credit. Returns success/failure and remaining count.
+ * Consumes one research credit atomically. Returns success/failure and remaining count.
  * Admins always succeed with remaining = -1.
+ *
+ * Uses a single atomic UPDATE with a WHERE guard so concurrent requests
+ * are serialized by PostgreSQL's row-level lock. The CASE expression handles
+ * both "reset-and-consume" (24h expired) and "just-consume" in one shot.
  */
 export async function consumeCredit(
   userId: string
 ): Promise<{ success: boolean; remaining: number }> {
-  const remaining = await getCreditsRemaining(userId);
-
-  // Unlimited credits (admin)
-  if (remaining === UNLIMITED_CREDITS) {
-    return { success: true, remaining: UNLIMITED_CREDITS };
-  }
-
-  if (remaining <= 0) {
-    return { success: false, remaining: 0 };
-  }
-
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
   const limit = getEffectiveLimit(user);
+
+  if (limit === UNLIMITED_CREDITS) return { success: true, remaining: UNLIMITED_CREDITS };
+  if (limit <= 0) return { success: false, remaining: 0 };
+
   const now = new Date();
-  const resetAt = new Date(user.creditsResetAt);
-  const needsReset = now.getTime() - resetAt.getTime() >= TWENTY_FOUR_HOURS_MS;
+  const resetThreshold = new Date(now.getTime() - TWENTY_FOUR_HOURS_MS);
 
-  const updated = await prisma.user.update({
-    where: { id: userId },
-    data: {
-      researchCreditsUsed: needsReset ? 1 : user.researchCreditsUsed + 1,
-      creditsResetAt: needsReset ? now : user.creditsResetAt,
-    },
-  });
+  const rowsAffected = await prisma.$executeRaw`
+    UPDATE "User"
+    SET
+      "researchCreditsUsed" = CASE
+        WHEN "creditsResetAt" <= ${resetThreshold} THEN 1
+        ELSE "researchCreditsUsed" + 1
+      END,
+      "creditsResetAt" = CASE
+        WHEN "creditsResetAt" <= ${resetThreshold} THEN ${now}
+        ELSE "creditsResetAt"
+      END,
+      "updatedAt" = ${now}
+    WHERE "id" = ${userId}
+    AND (
+      "creditsResetAt" <= ${resetThreshold}
+      OR "researchCreditsUsed" < ${limit}
+    )
+  `;
 
+  if (rowsAffected === 0) return { success: false, remaining: 0 };
+
+  // Read back to compute remaining
+  const updated = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
   const newRemaining = Math.max(0, limit - updated.researchCreditsUsed);
   return { success: true, remaining: newRemaining };
 }

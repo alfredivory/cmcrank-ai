@@ -46,7 +46,7 @@ const mockCreate = vi.mocked(prisma.allowlistEntry.create);
 
 const adminUser = {
   id: 'admin-1', role: 'ADMIN' as const, isAllowlisted: true,
-  name: 'Admin', email: 'admin@test.com', image: null, creditsRemaining: 5,
+  name: 'Admin', email: 'admin@test.com', image: null, creditsRemaining: -1, dailyCreditLimit: -1,
 };
 
 describe('GET /api/admin/allowlist', () => {

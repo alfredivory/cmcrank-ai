@@ -44,7 +44,8 @@ const adminUser = {
   email: 'admin@test.com',
   role: 'ADMIN' as const,
   isAllowlisted: true,
-  creditsRemaining: 5,
+  creditsRemaining: -1,
+  dailyCreditLimit: -1,
   image: null,
 };
 

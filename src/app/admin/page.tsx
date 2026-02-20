@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/helpers';
 import AdminLayout from '@/components/admin/AdminLayout';
 
-const VALID_TABS = ['data', 'users', 'allowlist', 'requests'] as const;
+const VALID_TABS = ['data', 'users', 'allowlist', 'requests', 'research'] as const;
 type AdminTab = (typeof VALID_TABS)[number];
 
 interface AdminPageProps {

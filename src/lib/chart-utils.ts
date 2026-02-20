@@ -1,3 +1,41 @@
+export type RankMovement = 'positive' | 'negative' | 'neutral';
+
+export const MOVEMENT_COLORS: Record<RankMovement, { fill: string; stroke: string }> = {
+  positive: { fill: '#22c55e', stroke: '#22c55e' },  // green-500
+  negative: { fill: '#ef4444', stroke: '#ef4444' },  // red-500
+  neutral:  { fill: '#eab308', stroke: '#eab308' },  // yellow-500
+};
+
+/**
+ * Determine whether a token's rank improved, worsened, or stayed flat
+ * during a date range by comparing the first and last rank snapshots.
+ *
+ * Returns 'positive' if rank improved by >5%, 'negative' if worsened by >5%,
+ * otherwise 'neutral'. Lower rank numbers are better (rank 1 = top).
+ */
+export function computeRankMovement(
+  snapshots: { date: string; rank: number }[],
+  startDate: string,
+  endDate: string,
+): RankMovement {
+  const inRange = snapshots.filter(s => s.date >= startDate && s.date <= endDate);
+  if (inRange.length < 2) return 'neutral';
+
+  const firstRank = inRange[0].rank;
+  const lastRank = inRange[inRange.length - 1].rank;
+
+  // Avoid division by zero
+  if (firstRank === 0) return 'neutral';
+
+  const changeRatio = (lastRank - firstRank) / firstRank;
+
+  // Rank decreased (number got smaller) → improved → positive
+  if (changeRatio < -0.05) return 'positive';
+  // Rank increased (number got larger) → worsened → negative
+  if (changeRatio > 0.05) return 'negative';
+  return 'neutral';
+}
+
 /**
  * Compute evenly-spaced tick dates for chart X-axis.
  *

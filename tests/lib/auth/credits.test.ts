@@ -6,6 +6,7 @@ vi.mock('@/lib/db', () => ({
       findUniqueOrThrow: vi.fn(),
       update: vi.fn(),
     },
+    $executeRaw: vi.fn(),
   },
 }));
 
@@ -14,6 +15,7 @@ import { getDailyLimit, getEffectiveLimit, getCreditsRemaining, consumeCredit, U
 
 const mockFindUser = vi.mocked(prisma.user.findUniqueOrThrow);
 const mockUpdateUser = vi.mocked(prisma.user.update);
+const mockExecuteRaw = vi.mocked(prisma.$executeRaw);
 
 function makeUser(overrides: Record<string, unknown> = {}) {
   return {
@@ -79,7 +81,6 @@ describe('getCreditsRemaining', () => {
 
   it('returns full credits when none used', async () => {
     mockFindUser.mockResolvedValue(makeUser() as never);
-    mockUpdateUser.mockResolvedValue({} as never);
 
     const result = await getCreditsRemaining('user-1');
     expect(result).toBe(5);
@@ -92,21 +93,16 @@ describe('getCreditsRemaining', () => {
     expect(result).toBe(2);
   });
 
-  it('auto-resets credits after 24 hours', async () => {
+  it('returns full credits when 24h have passed (virtual reset, no DB write)', async () => {
     const oldDate = new Date(Date.now() - 25 * 60 * 60 * 1000); // 25 hours ago
     mockFindUser.mockResolvedValue(
       makeUser({ researchCreditsUsed: 5, creditsResetAt: oldDate }) as never
     );
-    mockUpdateUser.mockResolvedValue({} as never);
 
     const result = await getCreditsRemaining('user-1');
     expect(result).toBe(5);
-    expect(mockUpdateUser).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: 'user-1' },
-        data: expect.objectContaining({ researchCreditsUsed: 0 }),
-      })
-    );
+    // No DB write — purely read-only
+    expect(mockUpdateUser).not.toHaveBeenCalled();
   });
 
   it('returns 0 when all credits used', async () => {
@@ -137,48 +133,64 @@ describe('consumeCredit', () => {
     process.env.RESEARCH_CREDITS_PER_DAY = '5';
   });
 
-  it('consumes a credit successfully', async () => {
-    mockFindUser.mockResolvedValue(makeUser({ researchCreditsUsed: 2 }) as never);
-    mockUpdateUser.mockResolvedValue(makeUser({ researchCreditsUsed: 3 }) as never);
+  it('consumes a credit successfully via atomic UPDATE', async () => {
+    // Initial read to get role/limit
+    mockFindUser.mockResolvedValueOnce(makeUser({ researchCreditsUsed: 2 }) as never);
+    // Atomic UPDATE succeeds (1 row affected)
+    mockExecuteRaw.mockResolvedValueOnce(1 as never);
+    // Read-back after UPDATE
+    mockFindUser.mockResolvedValueOnce(makeUser({ researchCreditsUsed: 3 }) as never);
 
     const result = await consumeCredit('user-1');
     expect(result.success).toBe(true);
     expect(result.remaining).toBe(2);
+    expect(mockExecuteRaw).toHaveBeenCalledTimes(1);
   });
 
-  it('fails when no credits remaining', async () => {
-    mockFindUser.mockResolvedValue(makeUser({ researchCreditsUsed: 5 }) as never);
+  it('fails when no credits remaining (atomic UPDATE affects 0 rows)', async () => {
+    mockFindUser.mockResolvedValueOnce(makeUser({ researchCreditsUsed: 5 }) as never);
+    // Atomic UPDATE fails (0 rows — WHERE guard blocks)
+    mockExecuteRaw.mockResolvedValueOnce(0 as never);
 
     const result = await consumeCredit('user-1');
     expect(result.success).toBe(false);
     expect(result.remaining).toBe(0);
   });
 
-  it('resets and consumes when 24h passed', async () => {
+  it('resets and consumes when 24h passed (atomic reset-and-consume)', async () => {
     const oldDate = new Date(Date.now() - 25 * 60 * 60 * 1000);
-    // First call for getCreditsRemaining
+    // Initial read
     mockFindUser.mockResolvedValueOnce(
       makeUser({ researchCreditsUsed: 5, creditsResetAt: oldDate }) as never
     );
-    // Reset update in getCreditsRemaining
-    mockUpdateUser.mockResolvedValueOnce({} as never);
-    // Second call for consumeCredit's own findUnique
+    // Atomic UPDATE succeeds (reset + consume in one shot)
+    mockExecuteRaw.mockResolvedValueOnce(1 as never);
+    // Read-back shows reset state
     mockFindUser.mockResolvedValueOnce(
-      makeUser({ researchCreditsUsed: 5, creditsResetAt: oldDate }) as never
+      makeUser({ researchCreditsUsed: 1, creditsResetAt: new Date() }) as never
     );
-    // Update in consumeCredit
-    mockUpdateUser.mockResolvedValueOnce(makeUser({ researchCreditsUsed: 1 }) as never);
 
     const result = await consumeCredit('user-1');
     expect(result.success).toBe(true);
     expect(result.remaining).toBe(4);
   });
 
-  it('always succeeds for admin users', async () => {
+  it('always succeeds for admin users (bypasses atomic UPDATE)', async () => {
     mockFindUser.mockResolvedValue(makeUser({ role: 'ADMIN', researchCreditsUsed: 999 }) as never);
 
     const result = await consumeCredit('user-1');
     expect(result.success).toBe(true);
     expect(result.remaining).toBe(UNLIMITED_CREDITS);
+    // Admin bypass — no $executeRaw called
+    expect(mockExecuteRaw).not.toHaveBeenCalled();
+  });
+
+  it('fails immediately when effective limit is 0', async () => {
+    mockFindUser.mockResolvedValueOnce(makeUser({ dailyCreditLimit: 0 }) as never);
+
+    const result = await consumeCredit('user-1');
+    expect(result.success).toBe(false);
+    expect(result.remaining).toBe(0);
+    expect(mockExecuteRaw).not.toHaveBeenCalled();
   });
 });

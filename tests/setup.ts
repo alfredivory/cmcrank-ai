@@ -12,4 +12,5 @@ process.env.GOOGLE_CLIENT_ID = 'test-google-id';
 process.env.GOOGLE_CLIENT_SECRET = 'test-google-secret';
 process.env.GITHUB_CLIENT_ID = 'test-github-id';
 process.env.GITHUB_CLIENT_SECRET = 'test-github-secret';
+process.env.ANTHROPIC_API_KEY = 'test-anthropic-key';
 process.env.LOG_LEVEL = 'error'; // Suppress logs in tests

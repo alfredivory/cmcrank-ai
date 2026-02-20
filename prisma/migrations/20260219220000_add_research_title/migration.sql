@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Research" ADD COLUMN IF NOT EXISTS "title" VARCHAR(120);

@@ -13,7 +13,7 @@ export default function CreditStatus({ className }: CreditStatusProps) {
     return null;
   }
 
-  const { creditsRemaining } = session.user;
+  const { creditsRemaining, dailyCreditLimit } = session.user;
 
   if (creditsRemaining === -1) {
     return (
@@ -23,9 +23,11 @@ export default function CreditStatus({ className }: CreditStatusProps) {
     );
   }
 
+  const colorClass = creditsRemaining === 0 ? 'text-red-400' : 'text-gray-400';
+
   return (
-    <span className={className ?? 'text-sm text-gray-400'}>
-      {creditsRemaining} credit{creditsRemaining !== 1 ? 's' : ''} remaining today
+    <span className={className ?? `text-sm ${colorClass}`}>
+      {creditsRemaining}/{dailyCreditLimit} credits available
     </span>
   );
 }

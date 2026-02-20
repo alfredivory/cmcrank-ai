@@ -96,3 +96,67 @@ export interface TokenListParams {
   category?: string;
   search?: string;
 }
+
+// ============================================================================
+// Research API Types
+// ============================================================================
+
+export interface ResearchListItem {
+  id: string;
+  title: string | null;
+  dateRangeStart: string;
+  dateRangeEnd: string;
+  status: string;
+  importanceScore: number;
+  createdAt: string;
+}
+
+export interface ResearchDetail {
+  id: string;
+  title: string | null;
+  tokenId: string;
+  dateRangeStart: string;
+  dateRangeEnd: string;
+  status: string;
+  content: unknown;
+  renderedMarkdown: string | null;
+  importanceScore: number;
+  userContext: string | null;
+  parentResearchId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  token: {
+    id: string;
+    name: string;
+    symbol: string;
+    slug: string;
+    logoUrl: string | null;
+    cmcId: number;
+  };
+  events: {
+    id: string;
+    eventDate: string;
+    eventType: string;
+    title: string;
+    description: string | null;
+    sourceUrl: string | null;
+    importanceScore: number;
+  }[];
+}
+
+export interface ResearchTriggerResponse {
+  data: {
+    researchId: string;
+    status: 'PENDING' | 'EXISTING';
+    existingResearchId?: string;
+  };
+}
+
+export interface ResearchStatusResponse {
+  data: {
+    id: string;
+    status: string;
+    importanceScore: number;
+    updatedAt: string;
+  };
+}
