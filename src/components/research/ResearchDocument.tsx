@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { ResearchDetail } from '@/types/api';
@@ -32,6 +33,15 @@ function getImportanceColor(score: number): string {
 export default function ResearchDocument({ research, movement }: ResearchDocumentProps) {
   const content = research.content as ResearchContent | null;
   const accent = movement ? MOVEMENT_ACCENT[movement] : null;
+  const [copied, setCopied] = useState(false);
+  const isComplete = research.status === 'COMPLETE';
+
+  function handleCopyLink() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -72,6 +82,23 @@ export default function ResearchDocument({ research, movement }: ResearchDocumen
             Importance: {research.importanceScore}/100
           </span>
         </div>
+        {isComplete && (
+          <div className="flex items-center gap-2 mt-3">
+            <a
+              href={`/api/research/${research.id}/download`}
+              download
+              className="bg-gray-700 text-gray-300 hover:bg-gray-600 px-3 py-1.5 rounded-lg text-sm"
+            >
+              Download PDF
+            </a>
+            <button
+              onClick={handleCopyLink}
+              className="bg-gray-700 text-gray-300 hover:bg-gray-600 px-3 py-1.5 rounded-lg text-sm"
+            >
+              {copied ? 'Copied!' : 'Copy Link'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Content */}

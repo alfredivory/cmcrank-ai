@@ -2,11 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  
-  // Enable experimental features
-  experimental: {
-    // Server actions are stable in Next.js 14+
-  },
+  serverExternalPackages: ['pdfkit'],
 
   // Image optimization
   images: {

@@ -85,4 +85,41 @@ describe('ResearchDocument', () => {
     const titleEl = screen.getByText('The ETF Rally');
     expect(titleEl.className).toContain('text-green-300');
   });
+
+  it('shows Download PDF link for COMPLETE research', () => {
+    render(<ResearchDocument research={sampleResearch} />);
+    const link = screen.getByText('Download PDF');
+    expect(link).toBeInTheDocument();
+    expect(link.tagName).toBe('A');
+    expect(link).toHaveAttribute('href', '/api/research/res1/download');
+    expect(link).toHaveAttribute('download');
+  });
+
+  it('shows Copy Link button for COMPLETE research', () => {
+    render(<ResearchDocument research={sampleResearch} />);
+    const button = screen.getByText('Copy Link');
+    expect(button).toBeInTheDocument();
+    expect(button.tagName).toBe('BUTTON');
+  });
+
+  it('does not show action buttons for PENDING research', () => {
+    const pending = { ...sampleResearch, status: 'PENDING' };
+    render(<ResearchDocument research={pending} />);
+    expect(screen.queryByText('Download PDF')).toBeNull();
+    expect(screen.queryByText('Copy Link')).toBeNull();
+  });
+
+  it('does not show action buttons for RUNNING research', () => {
+    const running = { ...sampleResearch, status: 'RUNNING' };
+    render(<ResearchDocument research={running} />);
+    expect(screen.queryByText('Download PDF')).toBeNull();
+    expect(screen.queryByText('Copy Link')).toBeNull();
+  });
+
+  it('does not show action buttons for FAILED research', () => {
+    const failed = { ...sampleResearch, status: 'FAILED' };
+    render(<ResearchDocument research={failed} />);
+    expect(screen.queryByText('Download PDF')).toBeNull();
+    expect(screen.queryByText('Copy Link')).toBeNull();
+  });
 });
