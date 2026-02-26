@@ -1,4 +1,6 @@
 const MAX_USER_CONTEXT_LENGTH = 2000;
+const MAX_COMMENT_CONTENT_LENGTH = 5000;
+const MAX_CITED_TEXT_LENGTH = 2000;
 const MAX_DATE_RANGE_DAYS = 730;
 
 // Patterns that look like prompt injection attempts
@@ -37,6 +39,46 @@ export function sanitizeUserContext(input: string): string {
   }
 
   // Strip null bytes
+  sanitized = sanitized.replace(/\0/g, '');
+
+  return sanitized;
+}
+
+/**
+ * Sanitize user-provided comment content.
+ * Strips prompt injection patterns, enforces max length.
+ */
+export function sanitizeCommentContent(input: string): string {
+  let sanitized = input.trim();
+
+  if (sanitized.length > MAX_COMMENT_CONTENT_LENGTH) {
+    sanitized = sanitized.slice(0, MAX_COMMENT_CONTENT_LENGTH);
+  }
+
+  for (const pattern of INJECTION_PATTERNS) {
+    sanitized = sanitized.replace(pattern, '[removed]');
+  }
+
+  sanitized = sanitized.replace(/\0/g, '');
+
+  return sanitized;
+}
+
+/**
+ * Sanitize cited text from research content.
+ * Strips prompt injection patterns, enforces max length.
+ */
+export function sanitizeCitedText(input: string): string {
+  let sanitized = input.trim();
+
+  if (sanitized.length > MAX_CITED_TEXT_LENGTH) {
+    sanitized = sanitized.slice(0, MAX_CITED_TEXT_LENGTH);
+  }
+
+  for (const pattern of INJECTION_PATTERNS) {
+    sanitized = sanitized.replace(pattern, '[removed]');
+  }
+
   sanitized = sanitized.replace(/\0/g, '');
 
   return sanitized;

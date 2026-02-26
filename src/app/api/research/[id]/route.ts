@@ -41,6 +41,7 @@ export async function GET(
         importanceScore: research.importanceScore,
         userContext: research.userContext,
         parentResearchId: research.parentResearchId,
+        version: research.version,
         createdAt: research.createdAt.toISOString(),
         updatedAt: research.updatedAt.toISOString(),
         token: research.token,

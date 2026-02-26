@@ -123,6 +123,7 @@ export interface ResearchDetail {
   importanceScore: number;
   userContext: string | null;
   parentResearchId: string | null;
+  version: number;
   createdAt: string;
   updatedAt: string;
   token: {

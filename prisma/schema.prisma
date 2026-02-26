@@ -54,15 +54,17 @@ model User {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
-  accounts       Account[]
-  sessions       Session[]
-  researches     Research[]
-  events         Event[]
-  contextNotes   ContextNote[]
-  chatMessages   ChatMessage[]
+  accounts           Account[]
+  sessions           Session[]
+  researches         Research[]
+  events             Event[]
+  contextNotes       ContextNote[]
+  chatMessages       ChatMessage[]
   accessRequests     AccessRequest[]
   watchlists         Watchlist[]
   researchFeedback   ResearchFeedback[]
+  researchComments   ResearchComment[]
+  commentReactions   CommentReaction[]
 }
 
 model VerificationToken {
@@ -223,6 +225,7 @@ model Research {
   events         Event[]
   chatMessages   ChatMessage[]
   feedback       ResearchFeedback[]
+  comments       ResearchComment[]
 
   @@index([tokenId, dateRangeStart, dateRangeEnd])
   @@index([status])
@@ -343,6 +346,51 @@ enum ChatRole {
   USER
   ASSISTANT
   SYSTEM
+}
+
+model ResearchComment {
+  id              String   @id @default(cuid())
+  researchId      String
+  userId          String
+  parentCommentId String?
+  researchVersion Int      // Version of research when comment was made
+  content         String   @db.Text
+  citedText       String?  @db.Text // Quoted section from research
+  isDeleted       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  research      Research          @relation(fields: [researchId], references: [id], onDelete: Cascade)
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentComment ResearchComment?  @relation("CommentThread", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  childComments ResearchComment[] @relation("CommentThread")
+  reactions     CommentReaction[]
+
+  @@index([researchId])
+  @@index([parentCommentId])
+}
+
+model CommentReaction {
+  id        String       @id @default(cuid())
+  commentId String
+  userId    String
+  type      ReactionType
+  createdAt DateTime     @default(now())
+
+  comment ResearchComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId, type])
+  @@index([commentId])
+}
+
+enum ReactionType {
+  UPVOTE
+  DOWNVOTE
+  FIRE
+  LIGHTBULB
+  THINKING
+  HUNDRED
 }
 
 // ============================================================================

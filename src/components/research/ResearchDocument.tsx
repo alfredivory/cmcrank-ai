@@ -4,12 +4,15 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import type { ResearchDetail } from '@/types/api';
 import type { RankMovement } from '@/lib/chart-utils';
+import VersionHistory from './VersionHistory';
 
 interface ResearchDocumentProps {
   research: ResearchDetail;
   movement?: RankMovement;
+  onCiteText?: (text: string) => void;
 }
 
 const MOVEMENT_ACCENT: Record<RankMovement, { border: string; title: string }> = {
@@ -31,12 +34,62 @@ function getImportanceColor(score: number): string {
   return 'text-gray-400';
 }
 
-export default function ResearchDocument({ research, movement }: ResearchDocumentProps) {
+export default function ResearchDocument({ research, movement, onCiteText }: ResearchDocumentProps) {
   const router = useRouter();
+  const { data: session } = useSession();
   const content = research.content as ResearchContent | null;
   const accent = movement ? MOVEMENT_ACCENT[movement] : null;
   const [copied, setCopied] = useState(false);
+  const [showCiteButton, setShowCiteButton] = useState(false);
+  const [citePosition, setCitePosition] = useState({ x: 0, y: 0 });
+  const [selectedText, setSelectedText] = useState('');
+  const [reresearchPending, setReresearchPending] = useState(false);
   const isComplete = research.status === 'COMPLETE';
+  const canReresearch = isComplete && session?.user?.isAllowlisted;
+
+  async function handleReresearch() {
+    if (reresearchPending) return;
+    setReresearchPending(true);
+    try {
+      const res = await fetch(`/api/research/${research.id}/reresearch`, {
+        method: 'POST',
+      });
+      if (res.ok) {
+        const body = await res.json();
+        router.push(`/research/${body.data.researchId}`);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setReresearchPending(false);
+    }
+  }
+
+  function handleTextSelection() {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || !onCiteText) {
+      setShowCiteButton(false);
+      return;
+    }
+    const text = selection.toString().trim();
+    if (text.length < 10) {
+      setShowCiteButton(false);
+      return;
+    }
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    setSelectedText(text);
+    setCitePosition({ x: rect.left + rect.width / 2, y: rect.top - 10 });
+    setShowCiteButton(true);
+  }
+
+  function handleCite() {
+    if (onCiteText && selectedText) {
+      onCiteText(selectedText);
+      setShowCiteButton(false);
+      window.getSelection()?.removeAllRanges();
+    }
+  }
 
   function handleCopyLink() {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -70,9 +123,12 @@ export default function ResearchDocument({ research, movement }: ResearchDocumen
             <h1 className={`text-xl font-semibold ${accent ? accent.title : 'text-white'}`}>
               {research.token.name} ({research.token.symbol})
             </h1>
-            <p className="text-sm text-gray-400">
-              Research: {research.dateRangeStart} to {research.dateRangeEnd}
-            </p>
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <span>Research: {research.dateRangeStart} to {research.dateRangeEnd}</span>
+              <span className="px-1.5 py-0.5 text-xs bg-blue-600/30 text-blue-300 rounded font-mono">
+                v{research.version}
+              </span>
+            </div>
           </div>
         </div>
         {research.title && (
@@ -92,7 +148,7 @@ export default function ResearchDocument({ research, movement }: ResearchDocumen
           </span>
         </div>
         {isComplete && (
-          <div className="flex items-center gap-2 mt-3">
+          <div className="flex items-center gap-2 mt-3 flex-wrap">
             <a
               href={`/api/research/${research.id}/download`}
               download
@@ -106,55 +162,81 @@ export default function ResearchDocument({ research, movement }: ResearchDocumen
             >
               {copied ? 'Copied!' : 'Copy Link'}
             </button>
+            {canReresearch && (
+              <button
+                onClick={handleReresearch}
+                disabled={reresearchPending}
+                className="bg-yellow-600/20 text-yellow-300 hover:bg-yellow-600/30 disabled:opacity-50 px-3 py-1.5 rounded-lg text-sm transition-colors"
+              >
+                {reresearchPending ? 'Triggering...' : 'Re-research'}
+              </button>
+            )}
           </div>
         )}
+        <VersionHistory
+          currentVersion={research.version}
+          parentResearchId={research.parentResearchId}
+          researchId={research.id}
+        />
       </div>
 
       {/* Content */}
-      {content && (
-        <>
-          {/* Executive Summary */}
-          <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
-            <h2 className="text-lg font-semibold text-white mb-3">Executive Summary</h2>
-            <p className="text-gray-300 leading-relaxed">{content.executiveSummary}</p>
-          </div>
-
-          {/* Findings */}
-          {content.findings.map((finding, index) => (
-            <div key={index} className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
-              <h2 className="text-lg font-semibold text-white mb-3">{finding.title}</h2>
-              <div
-                className="text-gray-300 leading-relaxed prose prose-invert prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(finding.content) }}
-              />
+      <div onMouseUp={handleTextSelection}>
+        {content && (
+          <>
+            {/* Executive Summary */}
+            <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 mb-6">
+              <h2 className="text-lg font-semibold text-white mb-3">Executive Summary</h2>
+              <p className="text-gray-300 leading-relaxed">{content.executiveSummary}</p>
             </div>
-          ))}
 
-          {/* Sources */}
-          {content.sources.length > 0 && (
-            <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
-              <h2 className="text-lg font-semibold text-white mb-3">Sources</h2>
-              <div className="space-y-2">
-                {content.sources.map((source, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <span className="text-xs px-2 py-0.5 bg-gray-700 rounded text-gray-400">
-                      {source.domain}
-                    </span>
-                    <a
-                      href={source.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-400 hover:text-blue-300 truncate"
-                    >
-                      {source.title}
-                    </a>
-                  </div>
-                ))}
+            {/* Findings */}
+            {content.findings.map((finding, index) => (
+              <div key={index} className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 mb-6">
+                <h2 className="text-lg font-semibold text-white mb-3">{finding.title}</h2>
+                <div
+                  className="text-gray-300 leading-relaxed prose prose-invert prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: renderMarkdown(finding.content) }}
+                />
               </div>
-            </div>
-          )}
-        </>
-      )}
+            ))}
+
+            {/* Sources */}
+            {content.sources.length > 0 && (
+              <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 mb-6">
+                <h2 className="text-lg font-semibold text-white mb-3">Sources</h2>
+                <div className="space-y-2">
+                  {content.sources.map((source, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <span className="text-xs px-2 py-0.5 bg-gray-700 rounded text-gray-400">
+                        {source.domain}
+                      </span>
+                      <a
+                        href={source.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-400 hover:text-blue-300 truncate"
+                      >
+                        {source.title}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {showCiteButton && (
+          <button
+            onClick={handleCite}
+            className="fixed z-50 bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg shadow-lg -translate-x-1/2 -translate-y-full hover:bg-blue-500 transition-colors"
+            style={{ left: citePosition.x, top: citePosition.y }}
+          >
+            Cite in comment
+          </button>
+        )}
+      </div>
 
       {!content && research.status === 'COMPLETE' && research.renderedMarkdown && (
         <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
