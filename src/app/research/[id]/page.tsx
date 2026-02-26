@@ -4,8 +4,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import SiteHeader from '@/components/layout/SiteHeader';
 import SiteFooter from '@/components/layout/SiteFooter';
-import ResearchDocument from '@/components/research/ResearchDocument';
-import ResearchFeedback from '@/components/research/ResearchFeedback';
+import ResearchPageClient from '@/components/research/ResearchPageClient';
 import { getResearchById } from '@/lib/queries/research';
 import { getLatestSnapshotDate, getSnapshotHistory } from '@/lib/queries/tokens';
 import { computeRankMovement } from '@/lib/chart-utils';
@@ -71,6 +70,7 @@ export default async function ResearchPage({ params }: ResearchPageProps) {
     importanceScore: research.importanceScore,
     userContext: research.userContext,
     parentResearchId: research.parentResearchId,
+    version: research.version,
     createdAt: research.createdAt.toISOString(),
     updatedAt: research.updatedAt.toISOString(),
     token: research.token,
@@ -85,13 +85,7 @@ export default async function ResearchPage({ params }: ResearchPageProps) {
       <div className="container mx-auto px-4 py-8">
         <SiteHeader />
 
-        <ResearchDocument research={serializedResearch} movement={movement} />
-
-        {research.status === 'COMPLETE' && (
-          <div className="mt-6 max-w-4xl mx-auto">
-            <ResearchFeedback researchId={research.id} />
-          </div>
-        )}
+        <ResearchPageClient research={serializedResearch} movement={movement} />
 
         <SiteFooter latestSnapshotDate={latestSnapshotDate} />
       </div>

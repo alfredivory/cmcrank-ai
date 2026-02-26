@@ -2,7 +2,11 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ back: vi.fn() }),
+  useRouter: () => ({ back: vi.fn(), push: vi.fn() }),
+}));
+
+vi.mock('next-auth/react', () => ({
+  useSession: () => ({ data: null, status: 'unauthenticated' }),
 }));
 
 import ResearchDocument from '@/components/research/ResearchDocument';
@@ -28,6 +32,7 @@ const sampleResearch: ResearchDetail = {
   importanceScore: 85,
   userContext: null,
   parentResearchId: null,
+  version: 1,
   createdAt: '2024-02-01T00:00:00Z',
   updatedAt: '2024-02-01T00:00:00Z',
   token: { id: 'token1', name: 'Bitcoin', symbol: 'BTC', slug: 'bitcoin', logoUrl: null, cmcId: 1 },
@@ -38,7 +43,7 @@ describe('ResearchDocument', () => {
   it('renders token name and date range', () => {
     render(<ResearchDocument research={sampleResearch} />);
     expect(screen.getByText('Bitcoin (BTC)')).toBeInTheDocument();
-    expect(screen.getByText('Research: 2024-01-01 to 2024-01-31')).toBeInTheDocument();
+    expect(screen.getByText(/Research: 2024-01-01 to 2024-01-31/)).toBeInTheDocument();
   });
 
   it('renders executive summary', () => {

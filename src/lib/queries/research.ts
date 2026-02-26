@@ -24,6 +24,7 @@ export interface ResearchDetail {
   importanceScore: number;
   userContext: string | null;
   parentResearchId: string | null;
+  version: number;
   createdAt: Date;
   updatedAt: Date;
   token: {
@@ -147,6 +148,7 @@ export async function getResearchById(
     importanceScore: research.importanceScore,
     userContext: research.userContext,
     parentResearchId: research.parentResearchId,
+    version: research.version,
     createdAt: research.createdAt,
     updatedAt: research.updatedAt,
     token: research.token,

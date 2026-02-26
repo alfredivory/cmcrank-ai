@@ -61,3 +61,14 @@ export interface ResearchConfig {
   maxSearches: number;
   maxTokens: number;
 }
+
+export interface ChatConfig {
+  model: string;
+  maxTokens: number;
+  maxContextMessages: number;
+}
+
+export interface ClassificationConfig {
+  model: string;
+  maxTokens: number;
+}
